@@ -1,0 +1,167 @@
+
+source("regressions/EPU_aggregate_q.R")
+
+################################################################################
+
+
+first.date.db <- as.Date("01/01/2004","%d/%m/%Y")
+last.date.db <- as.Date("01/07/2022","%d/%m/%Y")
+DATE <- seq(first.date.db,last.date.db, by="quarter")
+
+
+DATAFSLEPU <- read.csv("data/panel/EPU_FSL.csv", dec=".")
+DATAreg4wA <- DATAFSLEPU
+
+################################################################################
+# load dataset w/ vix, move, mopo variables, consumer confidence and sentiment (ipsos), business confidence
+
+Volatility      <- read.csv("data/panel/Volatility.csv",sep=",",dec=".")
+Volatility$DATE <- as.Date(Volatility$DATE, "%m/%d/%Y")
+indic.first.db <- which(Volatility$DATE == first.date.db)
+indic.last.db  <- which(Volatility$DATE == last.date.db)
+Volatility <- Volatility[indic.first.db:indic.last.db,]
+
+data4regw <- read.csv("data/panel/data4regw.csv", dec=".")
+data4regw$DATE <- as.Date(data4regw$DATE, "%m/%d/%Y")
+indic.first.db <- which(data4regw$DATE == first.date.db)
+indic.last.db  <- which(data4regw$DATE == last.date.db)
+
+DATAreg4wB <- data.frame()
+
+for(ctry in list.of.ctries){
+  
+  COUNTRY <- rep(ctry, length(DATE))
+  
+  eval(parse(text = gsub(" ","",paste("DATAreg4wB.i <- data.frame(DATE = data4regw$DATE[indic.first.db:indic.last.db],
+                                      Cbassets = data4regw$",ctry,"_Cbassets[indic.first.db:indic.last.db],
+                                      policyrate = data4regw$",ctry,"_policyrate[indic.first.db:indic.last.db],
+                                      consconf = data4regw$",ctry,"_consconf[indic.first.db:indic.last.db],
+                                      businessconf = data4regw$",ctry,"_businessconf[indic.first.db:indic.last.db],
+                                      sentiment = data4regw$",ctry,"_sentiment[indic.first.db:indic.last.db], vix = Volatility$VIX/100, move = Volatility$MOVE/100)",sep=""))))
+  
+  DATAreg4wBct <- data.frame(DATE,COUNTRY)
+  DATAreg4wB_by_country <- merge(DATAreg4wBct,DATAreg4wB.i,by="DATE",all = TRUE)
+  
+  DATAreg4wB <- rbind(DATAreg4wB,DATAreg4wB_by_country)
+}
+DATAreg4w <- cbind(DATAreg4wA,DATAreg4wB[,-(1:2)])
+
+################################################################################
+
+################################################################################
+# load factors:
+
+W <- read.csv("results/W.csv", dec=".")
+W <- W[-1,-1]
+W$DATE <- as.Date(W$DATE, "%Y-%m-%d")
+indic.first.db <- which(W$DATE == first.date.db)
+indic.last.db  <- which(W$DATE == last.date.db)
+
+DATAreg4wC <- data.frame()
+
+for(ctry in list.of.ctries){
+  
+  COUNTRY <- rep(ctry, length(DATE))
+  
+  eval(parse(text = gsub(" ","",paste("DATAreg4wC.i <- data.frame(DATE = W$DATE[indic.first.db:indic.last.db],
+                                      w1 = W$w1_",ctry,"[indic.first.db:indic.last.db],
+                                      w2 = W$w2_",ctry,"[indic.first.db:indic.last.db],
+                                      w3 = W$w3_",ctry,"[indic.first.db:indic.last.db],
+                                      w4 = W$w4_",ctry,"[indic.first.db:indic.last.db],
+                                      w5 = W$w5_",ctry,"[indic.first.db:indic.last.db],
+                                      w6 = W$w6_",ctry,"[indic.first.db:indic.last.db],
+                                      w7 = W$w7_",ctry,"[indic.first.db:indic.last.db],
+                                      w8 = W$w8_",ctry,"[indic.first.db:indic.last.db])",sep=""))))
+  
+  DATAreg4wCct <- data.frame(DATE,COUNTRY)
+  DATAreg4wC_by_country <- merge(DATAreg4wCct,DATAreg4wC.i,by="DATE",all = TRUE)
+  
+  DATAreg4wC <- rbind(DATAreg4wC,DATAreg4wC_by_country)
+}
+DATAreg4w <- cbind(DATAreg4w,DATAreg4wC[,-(1:2)])
+
+################################################################################
+
+
+DATAreg4wD <- data.frame()
+
+for(ctry in list.of.ctries){
+
+source(paste("load.data.files/load.data.",ctry,".R",sep=""))
+  
+indic.first.db <- which(DATA$DATE[1]==W$DATE)
+indic.last.db <- which(DATA$DATE[which(DATA$DATE==last.date.db)]==W$DATE)
+
+
+COUNTRY <- rep(ctry, indic.last.db)
+
+DATAreg4wD.i <- data.frame(DATE = W$DATE[1:indic.last.db],
+                           yield1 = c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           yield2 = c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           yield3 = c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           d.y = c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           d.c = c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           inflation = c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           debt.fcsts1 =c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           debt.fcsts2 =c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           debt.fcsts3 = c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           infl.fcsts1 = c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           infl.fcsts2 = c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           infl.fcsts3 = c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           growth.fcsts1 = c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           growth.fcsts2 = c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           growth.fcsts3 = c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           r = c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           s = c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           d = c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           CDS1 =c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           CDS2 =c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           CDS3 = c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           CDS4 = c(rep(NA, (length(W$DATE[1:indic.last.db])))),
+                           CDS5 = c(rep(NA, (length(W$DATE[1:indic.last.db])))))
+
+
+DATAreg4wD.i$yield1[indic.first.db:indic.last.db] = 400*DATA$yields[,1]
+DATAreg4wD.i$yield2[indic.first.db:indic.last.db] = 400*DATA$yields[,2]
+DATAreg4wD.i$yield3[indic.first.db:indic.last.db] = 400*DATA$yields[,3]
+DATAreg4wD.i$d.y[indic.first.db:indic.last.db] = 100*DATA$d.y
+DATAreg4wD.i$d.c[indic.first.db:indic.last.db] = 100*DATA$d.c
+DATAreg4wD.i$inflation[indic.first.db:indic.last.db] = 100*DATA$inflation
+DATAreg4wD.i$debt.fcsts1[indic.first.db:indic.last.db] = DATA$debt.fcsts[,1]
+DATAreg4wD.i$debt.fcsts2[indic.first.db:indic.last.db] = DATA$debt.fcsts[,2]
+DATAreg4wD.i$debt.fcsts3[indic.first.db:indic.last.db] = DATA$debt.fcsts[,3]
+DATAreg4wD.i$infl.fcsts1[indic.first.db:indic.last.db] = DATA$infl.fcsts[,1]
+DATAreg4wD.i$infl.fcsts2[indic.first.db:indic.last.db] = DATA$infl.fcsts[,2]
+DATAreg4wD.i$infl.fcsts3[indic.first.db:indic.last.db] = DATA$infl.fcsts[,3]
+DATAreg4wD.i$growth.fcsts1[indic.first.db:indic.last.db] = DATA$growth.fcsts[,1]
+DATAreg4wD.i$growth.fcsts2[indic.first.db:indic.last.db] = DATA$growth.fcsts[,2]
+DATAreg4wD.i$growth.fcsts3[indic.first.db:indic.last.db] = DATA$growth.fcsts[,3]
+DATAreg4wD.i$r[indic.first.db:indic.last.db] = 100*DATA$r
+DATAreg4wD.i$s[indic.first.db:indic.last.db] = 100*DATA$s
+DATAreg4wD.i$d[indic.first.db:indic.last.db] = DATA$d/4
+DATAreg4wD.i$CDS1[indic.first.db:indic.last.db] = 40000*DATA$CDS[,1]
+DATAreg4wD.i$CDS2[indic.first.db:indic.last.db] = 40000*DATA$CDS[,2]
+DATAreg4wD.i$CDS3[indic.first.db:indic.last.db] = 40000*DATA$CDS[,3]
+DATAreg4wD.i$CDS4[indic.first.db:indic.last.db] = 40000*DATA$CDS[,4]
+DATAreg4wD.i$CDS5[indic.first.db:indic.last.db] = 40000*DATA$CDS[,5]
+
+
+DATAreg4wDct <- data.frame(DATE=W$DATE[1:indic.last.db],COUNTRY)
+DATAreg4wD_by_country <- merge(DATAreg4wDct,DATAreg4wD.i,by="DATE",all = TRUE)
+
+DATAreg4wD <- rbind(DATAreg4wD,DATAreg4wD_by_country)
+
+}
+
+DATAreg4w <- cbind(DATAreg4w,DATAreg4wD[-(1:2)])
+
+################################################################################
+
+write.csv(DATAreg4w,"data/panel/DATA_reg4w.csv", row.names = FALSE)
+
+
+indic.ae <- which(DATAreg4w$DATE == last.date.db)
+indic.ae <- indic.ae[which(list.of.ctries=="JP")]
+
+DATA_reg4w_advanced <- DATAreg4w[1:indic.ae,]
+write.csv(DATA_reg4w_advanced,"data/panel/DATA_reg4w_advanced.csv", row.names = FALSE)

@@ -1,0 +1,185 @@
+no.factor <- 4
+
+PD <- read.csv("data/panel/DATA_reg4w.csv")
+
+
+names(PD)[1] <- "TIME"
+PDdf <- pdata.frame(PD, index = c("COUNTRY", "TIME"), drop.index = FALSE, row.names = TRUE,
+                    stringsAsFactors = FALSE,
+                    replace.non.finite = FALSE, drop.NA.series = FALSE,
+                    drop.const.series = FALSE, drop.unused.levels = FALSE)
+
+# Data adjustments:
+
+PDdf$consconf <- PDdf$consconf/100
+PDdf$businessconf <- PDdf$businessconf/100
+PDdf$sentiment <- PDdf$sentiment/100
+PDdf$Cbassets <- log(PDdf$Cbassets)
+PDdf$vix <- PDdf$vix/100
+PDdf$move <- PDdf$move
+PDdf$EPU  <- log(PDdf$EPU)
+
+PD$consconf <- PD$consconf/100
+PD$businessconf <- PD$businessconf/100
+PD$sentiment <- PD$sentiment/100
+PD$Cbassets <- log(PD$Cbassets)
+PD$vix <- PD$vix/100
+PD$move <- PD$move
+PD$EPU  <- log(PD$EPU)
+
+
+
+eval(parse(text = gsub(" ","",paste("PDdf$w <- PDdf$w",no.factor,sep=""))))
+eval(parse(text = gsub(" ","",paste("PD$w <- PD$w",no.factor,sep=""))))
+
+################################################################################
+# Country FE 
+
+Panel.REG.w <- plm(w ~ lag(w,1) + EPU  + Cbassets  + move , 
+                   data = PDdf, index=c("COUNTRY", "TIME"), effect =c("individual"), model = "within")
+
+Panel.REG.w.fe <- coeftest(Panel.REG.w, vcov = vcovDC)
+summary(Panel.REG.w.fe)
+
+stargazer(Panel.REG.w.fe, type="text")
+
+
+Panel.REG.w.fd <- plm(w ~ EPU  + Cbassets  + move , 
+                      data = PDdf, index=c("COUNTRY", "TIME"), model = "fd")
+Panel.REG.w.fd.w <- coeftest(Panel.REG.w.fd, vcov = vcovDC)
+summary(Panel.REG.w.fd)
+
+stargazer(Panel.REG.w.fd.w, type="text")
+
+
+####################################################################################
+# Single-country regressions
+
+PD_US = PD[PD$COUNTRY=="US",]
+PD_UK = PD[PD$COUNTRY=="UK",]
+PD_EA = PD[PD$COUNTRY=="EA",]
+PD_JP = PD[PD$COUNTRY=="JP",]
+
+for(country in list.of.ctries){
+  PD_subset <- PD[PD$COUNTRY==country,] #+ c(NA,diff(Cbassets,1))
+  reg <- lm(c(NA,w[2:length(w)]) ~  c(NA,w[1:length(w)-1]) + EPU  + Cbassets  + move,data = PD_subset)
+  reg.w <- coeftest(reg, vocv=NeweyWest(model,lag=2, prewhite=FALSE))
+  eval(parse(text = gsub(" ","",paste("reg_",country,".w<- reg.w",sep=""))))
+}
+
+####################################################################################
+
+labels.x <- c(paste("$w_{",no.factor,",t-1}$",sep=""),"$EPU_{t}$","$CB Assets_{t}$","$MOVE_{t}$")
+
+
+ALLreg <- stargazer(Panel.REG.w.fe, Panel.REG.w.fd.w,  
+                    covariate.labels=labels.x,
+                    title="All countries - Panel Regression Results")
+
+SingleReg <- stargazer(reg_US.w,reg_UK.w,reg_EA.w,reg_JP.w,
+                       covariate.labels=labels.x,
+                       title="Single-country Regressions Results")
+
+
+
+# --------------------------------
+# Prepare Latex tables
+# --------------------------------
+
+latex.table <- c(
+  "\\begin{table}[!htbp] \\centering 
+  \\caption{Latent factor ($w_{4,t}$) - Panel regression results} 
+   \\label{tab:prW4}  
+\\begin{tabular*}{\\textwidth}{l@{\\extracolsep{\\fill}}cccccc}
+\\hline 
+\\hline 
+\\\\
+
+& \\multicolumn{2}{c}{\\textit{All countries}} \\\\
+& Country FE & FD \\\\ 
+& $w_{4,t}$ & $w_{4,t}$ \\\\
+\\hline ")
+
+allreg.lines <- cbind(ALLreg[15:26])
+
+
+latex.table <- rbind(latex.table,
+                     allreg.lines,
+                     "\\hline 
+                      \\hline 
+                      \\end{tabular*} 
+                      \\begin{footnotesize}
+                      \\parbox{\\linewidth}{
+                      Note: This table reports the results of panel regressions of fiscal space ($FS$) estimates on the Economic Policy Uncertainty (EPU), 
+                      Central Bank assets and the ICE BofAML MOVE Index (MOVE).  
+                      The estimation sample goes from $2004Q1$ to $2022Q3$. 
+                      FE stands for Fixed Effects, FD for first difference. 
+                      We employ two-way clustering for the standard errors (country and quarter). 
+                      See text for more details.
+                      $^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01}.
+                      \\end{footnotesize}
+                      \\end{table} 
+                       ")
+
+write(latex.table, "tables/PanelRegWSstar_EPU_reg.tex")
+
+
+####################
+
+latex.table <- NA
+latex.table <- c(
+  "\\begin{table}[!htbp] \\centering 
+  \\caption{Latent factor ($w_{4,t}$) - Single-country regression results} 
+   \\label{tab:scrW4}  
+\\begin{tabular*}{\\textwidth}{l@{\\extracolsep{\\fill}}cccccc}
+\\hline 
+\\hline 
+\\\\
+& United States & United Kingdom & Euro Area & Japan \\\\ 
+& $w_{4,t}$ & $w_{4,t}$ & $w_{4,t}$ & $w_{4,t}$ \\\\
+\\hline ")
+
+reg.lines <- cbind(SingleReg[15:26])
+
+
+latex.table <- rbind(latex.table,
+                     reg.lines,
+                     "\\hline 
+                      \\hline 
+                      \\end{tabular*} 
+                      \\begin{footnotesize}
+                      \\parbox{\\linewidth}{
+                      Note: This table reports the results of single-country regressions of fiscal space ($FS$) estimates on the Economic Policy Uncertainty (EPU), 
+                      Central Bank assets and the ICE BofAML MOVE Index (MOVE).  
+                      The estimation sample goes from $2004Q1$ to $2022Q3$. 
+                      We employ Newey-West standard errors. 
+                      See text for more details. 
+                      $^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01}.
+                      \\end{footnotesize}
+                      \\end{table} 
+                       ")
+
+write(latex.table, "tables/SingleCCRegWSstar_EPU_reg.tex")
+
+
+
+rm(PD,
+   PDdf,
+   
+   Panel.REG.FS,
+   Panel.REG.FS.w,
+   
+   plm_FD_fs,
+   plm_FD_fs.w,
+   
+   
+   labels.x,
+   ALLreg,
+   
+   latex.table,
+   
+   allreg.lines,
+   
+   reg.lines
+   
+)

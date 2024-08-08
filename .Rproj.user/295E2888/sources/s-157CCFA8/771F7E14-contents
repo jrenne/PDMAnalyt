@@ -1,0 +1,145 @@
+# ------------------------------------------------------------------------------
+# Load Dataset for EA:
+# ------------------------------------------------------------------------------
+# Select sample:
+first.date <- as.Date("01/01/2008","%d/%m/%Y")
+last.date  <- as.Date("01/10/2022","%d/%m/%Y")
+# ------------------------------------------------------------------------------
+
+#### STEP 1 - Load datasets ####################################################
+# --- Load Datastream data -----------------------------------------------------
+LARGE_DATA      <- read.csv("data/EA/Main/EADatastream_debtw.csv", dec=".")
+LARGE_DATA$DATE <- as.Date(LARGE_DATA$DATE,"%d.%m.%Y") 
+# Load projections -------------------------------------------------------------
+Proj       <- read.csv("data/Projections/Main/EAWEO.csv")
+Proj$DATE  <- as.Date(Proj$DATE,"%m/%d/%Y")
+LARGE_DATA <- merge(LARGE_DATA,Proj,by="DATE",all=TRUE)
+T <- dim(LARGE_DATA)[1]
+################################################################################
+
+#### STEP 2 - Prepare macro variables ##########################################
+
+# --- GDP growth ---------------------------------------------------------------
+Nominal.Quarterly.GDP      <- LARGE_DATA$nom.GDP
+Real.Quarterly.GDP         <- LARGE_DATA$real.GDP
+LARGE_DATA$SUM4.nominal.Quarterly.GDP <- NaN
+LARGE_DATA$SUM4.nominal.Quarterly.GDP[4:T] <- (Nominal.Quarterly.GDP[4:T] +
+                                                 Nominal.Quarterly.GDP[3:(T-1)] +
+                                                 Nominal.Quarterly.GDP[2:(T-2)] +
+                                                 Nominal.Quarterly.GDP[1:(T-3)]) # rolling yearly GDP
+LARGE_DATA$d.y <- c(NaN,
+                    log(Real.Quarterly.GDP[2:T]/Real.Quarterly.GDP[1:(T-1)]))
+
+# --- Consumption growth -------------------------------------------------------
+Real.Consumption <- LARGE_DATA$cons
+LARGE_DATA$d.c <- c(NaN,log(Real.Consumption[2:T]/
+                              Real.Consumption[1:(T-1)]))
+
+# --- Inflation ----------------------------------------------------------------
+GDP.deflator <- LARGE_DATA$GDP.defl
+LARGE_DATA$inflation <- c(NaN,
+                          log(GDP.deflator[2:T]/GDP.deflator[1:(T-1)]))
+
+# --- Debt-to-GDP ratio --------------------------------------------------------
+# --- Seasonal adjustment of debt 
+LARGE_DATA$debt.ts <- ts(LARGE_DATA$debt, frequency = 4, 
+                         start = c(as.integer(format(LARGE_DATA$DATE[1],"%Y")),
+                                   as.numeric(substr(quarters(LARGE_DATA$DATE[1]), 2, 2))))
+res.sa.debt <- seas(LARGE_DATA$debt.ts,x11="")
+LARGE_DATA$debt.sa <- LARGE_DATA$debt
+LARGE_DATA$debt.sa[!is.na(LARGE_DATA$debt)] <- final(res.sa.debt)
+# ------------------------------------------------------------------------------
+
+Nominal.debt <- LARGE_DATA$debt.sa
+LARGE_DATA$d <- 4*Nominal.debt/(LARGE_DATA$SUM4.nominal.Quarterly.GDP)
+
+
+# --- interest-payments-to-GDP ratio -------------------------------------------
+# --- Seasonal adjustment of interest payments 
+LARGE_DATA$int.ts <- ts(LARGE_DATA$int, frequency = 4, 
+                        start = c(as.integer(format(LARGE_DATA$DATE[1],"%Y")),
+                                  as.numeric(substr(quarters(LARGE_DATA$DATE[1]), 2, 2))))
+res.sa.int <- seas(LARGE_DATA$int.ts,x11="")
+LARGE_DATA$int.sa <- LARGE_DATA$int
+LARGE_DATA$int.sa[!is.na(LARGE_DATA$int)] <- final(res.sa.int)
+# ------------------------------------------------------------------------------
+nominal.quarterly.interest.payment <- LARGE_DATA$int.sa
+LARGE_DATA$r <- nominal.quarterly.interest.payment/Nominal.Quarterly.GDP
+################################################################################
+# --- Surplus-to-GDP ratio -----------------------------------------------------
+Nominal.quarterly.surplus <- LARGE_DATA$surp + LARGE_DATA$int.sa
+LARGE_DATA$s <- Nominal.quarterly.surplus/Nominal.Quarterly.GDP
+
+#### STEP 3 - Resize database ##################################################
+indic.first <- which(LARGE_DATA$DATE == first.date)
+indic.last  <- which(LARGE_DATA$DATE == last.date)
+LARGE_DATA  <- LARGE_DATA[indic.first:indic.last,]
+################################################################################
+
+#### STEP 4 - Prepare DATA dataframe ###########################################
+
+DATA <- list(
+  
+  DATES = LARGE_DATA$DATE,
+  
+  yields = cbind(
+    LARGE_DATA$Y2/400,
+    LARGE_DATA$Y5/400,
+    LARGE_DATA$Y10/400),
+  maturity.yields = c(8,20,40), # maturities are expressed in numbers of model periods
+  
+  CDS = cbind(
+    LARGE_DATA$CDS1/40000,
+    LARGE_DATA$CDS2/40000,
+    LARGE_DATA$CDS3/40000,
+    LARGE_DATA$CDS5/40000,
+    LARGE_DATA$CDS10/40000
+  ),
+  maturity.CDS = c(4,8,12,20,40), # maturities are expressed in numbers of model periods
+  
+  d.y       = LARGE_DATA$d.y,
+  d.c       = LARGE_DATA$d.c,
+  d.c.obs   = NaN * LARGE_DATA$d.c,
+  inflation = LARGE_DATA$inflation,
+  d         = LARGE_DATA$d,
+  r         = LARGE_DATA$r,
+  s         = LARGE_DATA$s,
+  
+  horizon.fcsts = 4 * (1:5), # horizons are expressed in numbers of model periods
+  
+  debt.fcsts   = cbind(
+    LARGE_DATA$Debt_Y1*4/100,
+    LARGE_DATA$Debt_Y2*4/100,
+    LARGE_DATA$Debt_Y3*4/100,
+    LARGE_DATA$Debt_Y4*4/100,
+    LARGE_DATA$Debt_Y5*4/100),
+  
+  infl.fcsts   = cbind(
+    LARGE_DATA$pi.1,
+    LARGE_DATA$pi.2,
+    LARGE_DATA$pi.3,
+    LARGE_DATA$pi.4,
+    LARGE_DATA$pi.5),
+  
+  growth.fcsts = cbind(
+    LARGE_DATA$D.GDP.nom.1,
+    LARGE_DATA$D.GDP.nom.2,
+    LARGE_DATA$D.GDP.nom.3,
+    LARGE_DATA$D.GDP.nom.4,
+    LARGE_DATA$D.GDP.nom.5),
+  
+  DATE = LARGE_DATA$DATE,
+  
+  avg_mat = 6.6,
+  
+  name.of.country = list(short.name = "EA",
+                         long.name  = "Euro Area"),
+  
+  list.of.dates = c("10/05/2010","02/08/2012","22/01/2015","15/03/2015", "12/09/2019", "12/03/2020", "18/03/2020", 
+                    "21/06/2021","24/02/2022","21/07/2022", "15/12/2022")  
+)
+
+
+
+
+

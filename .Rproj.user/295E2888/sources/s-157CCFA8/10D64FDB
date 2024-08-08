@@ -1,0 +1,26 @@
+{
+    "id": "10D64FDB",
+    "path": "C:/Users/kpall/Dropbox/FiscalLimits/FL_Rcodes/regressions/FS_epu_reg.R",
+    "project_path": "regressions/FS_epu_reg.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1710866649560.0,
+    "source_on_save": false,
+    "relative_order": 11,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "15,31",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1709739221,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1709739221,
+    "read_only": false,
+    "read_only_alternatives": []
+}

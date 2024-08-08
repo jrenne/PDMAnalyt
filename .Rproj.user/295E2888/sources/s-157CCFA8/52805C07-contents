@@ -1,0 +1,158 @@
+# ------------------------------------------------------------------------------
+# Load Dataset for JP :
+# ------------------------------------------------------------------------------
+# Select sample:
+first.date <- as.Date("01/01/2004","%d/%m/%Y")
+last.date  <- as.Date("01/07/2022","%d/%m/%Y")
+# ------------------------------------------------------------------------------
+
+
+
+
+#### STEP 1 - Load datasets ####################################################
+
+# --- Load Datastream data -----------------------------------------------------
+LARGE_DATA      <- read.csv("data/JP/Main/JPDatastream.csv", dec=".")
+LARGE_DATA$DATE <- as.Date(LARGE_DATA$DATE,"%d.%m.%Y") 
+
+# Load projections -------------------------------------------------------------
+Proj       <- read.csv("data/Projections/Main/JPWEO.csv")
+Proj$DATE  <- as.Date(Proj$DATE,"%m/%d/%Y")
+LARGE_DATA <- merge(LARGE_DATA,Proj,by="DATE",all=TRUE)
+T <- dim(LARGE_DATA)[1]
+################################################################################
+
+
+
+
+#### STEP 2 - Prepare macro variables ##########################################
+
+# --- GDP growth ---------------------------------------------------------------
+Nominal.Quarterly.GDP      <- LARGE_DATA$nom.GDP/4 #GDP is in annualized figures
+Real.Quarterly.GDP         <- LARGE_DATA$real.GDP/4
+LARGE_DATA$SUM4.nominal.Quarterly.GDP <- NaN
+LARGE_DATA$SUM4.nominal.Quarterly.GDP[4:T] <- (Nominal.Quarterly.GDP[4:T] +
+                                                 Nominal.Quarterly.GDP[3:(T-1)] +
+                                                 Nominal.Quarterly.GDP[2:(T-2)] +
+                                                 Nominal.Quarterly.GDP[1:(T-3)]) # rolling yearly GDP
+LARGE_DATA$d.y <- c(NaN,
+                    log(Real.Quarterly.GDP[2:T]/Real.Quarterly.GDP[1:(T-1)]))
+
+# --- Consumption growth -------------------------------------------------------
+Real.Consumption <- LARGE_DATA$cons.services + LARGE_DATA$cons.nondur
+LARGE_DATA$d.c <- c(NaN,log(Real.Consumption[2:T]/
+                              Real.Consumption[1:(T-1)]))
+
+# --- Inflation ----------------------------------------------------------------
+GDP.deflator <- LARGE_DATA$GDP.defl
+LARGE_DATA$inflation <- c(NaN,
+                          log(GDP.deflator[2:T]/GDP.deflator[1:(T-1)]))
+
+# --- Debt-to-GDP ratio --------------------------------------------------------
+# --- Seasonal adjustment of debt
+LARGE_DATA$debt.ts <- ts(LARGE_DATA$debt, frequency = 4,
+                             start = c(as.integer(format(LARGE_DATA$DATE[1],"%Y")),
+                                       as.numeric(substr(quarters(LARGE_DATA$DATE[1]), 2, 2))))
+res.sa.debt <- seas(LARGE_DATA$debt.ts,x11="") 
+LARGE_DATA$debt.sa <- LARGE_DATA$debt
+LARGE_DATA$debt.sa[!is.na(LARGE_DATA$debt)] <- final(res.sa.debt)  
+# ------------------------------------------------------------------------------
+Nominal.debt <- LARGE_DATA$debt.sa
+LARGE_DATA$d <- Nominal.debt/(LARGE_DATA$SUM4.nominal.Quarterly.GDP/4)
+
+# --- Surplus-to-GDP ratio -----------------------------------------------------
+Nominal.quarterly.surplus <- LARGE_DATA$surp/4000
+LARGE_DATA$s <- Nominal.quarterly.surplus/Nominal.Quarterly.GDP
+
+# --- interest-payments-to-GDP ratio -------------------------------------------
+nominal.quarterly.interest.payment <- LARGE_DATA$int/4000
+LARGE_DATA$r <- nominal.quarterly.interest.payment/Nominal.Quarterly.GDP
+################################################################################
+
+
+
+
+#### STEP 3 - Resize database ##################################################
+indic.first <- which(LARGE_DATA$DATE == first.date)
+indic.last  <- which(LARGE_DATA$DATE == last.date)
+LARGE_DATA  <- LARGE_DATA[indic.first:indic.last,]
+################################################################################
+
+
+
+
+#### STEP 4 - Prepare DATA dataframe ###########################################
+
+DATA <- list(
+  
+  DATES = LARGE_DATA$DATE,
+  
+  yields = cbind(
+    LARGE_DATA$Y2/400,
+    LARGE_DATA$Y5/400,
+    LARGE_DATA$Y10/400),
+  maturity.yields = c(8,20,40), # maturities are expressed in numbers of model periods
+  
+  CDS = cbind(
+    LARGE_DATA$CDS1/40000,
+    LARGE_DATA$CDS2/40000,
+    LARGE_DATA$CDS3/40000,
+    LARGE_DATA$CDS5/40000,
+    LARGE_DATA$CDS10/40000
+  ),
+  maturity.CDS = c(4,8,12,20,40), # maturities are expressed in numbers of model periods
+  
+  d.y       = LARGE_DATA$d.y,
+  d.c       = LARGE_DATA$d.c,
+  d.c.obs   = NaN * LARGE_DATA$d.c,
+  inflation = LARGE_DATA$inflation,
+  d         = LARGE_DATA$d,
+  r         = LARGE_DATA$r,
+  s         = LARGE_DATA$s,
+  
+  horizon.fcsts = 4 * (1:5), # horizons are expressed in numbers of model periods
+  
+  debt.fcsts   = cbind(
+    LARGE_DATA$Debt_Y1*4/100,
+    LARGE_DATA$Debt_Y2*4/100,
+    LARGE_DATA$Debt_Y3*4/100,
+    LARGE_DATA$Debt_Y4*4/100,
+    LARGE_DATA$Debt_Y5*4/100),
+  
+  infl.fcsts   = cbind(
+    LARGE_DATA$pi.1,
+    LARGE_DATA$pi.2,
+    LARGE_DATA$pi.3,
+    LARGE_DATA$pi.4,
+    LARGE_DATA$pi.5),
+  
+  growth.fcsts = cbind(
+    LARGE_DATA$D.GDP.nom.1,
+    LARGE_DATA$D.GDP.nom.2,
+    LARGE_DATA$D.GDP.nom.3,
+    LARGE_DATA$D.GDP.nom.4,
+    LARGE_DATA$D.GDP.nom.5),
+  
+  DATE = LARGE_DATA$DATE,
+  
+  avg_mat = 9.0,
+  # Source: Debt Management report 2020 (Figure 1-13 in https://www.mof.go.jp/english/policy/jgbs/publication/debt_management_report/2020/index.html)
+  
+  name.of.country = list(short.name = "JP",
+                         long.name  = "Japan"),
+  
+  list.of.dates = c("15/10/2010","15/04/2013","31/10/2014", "01/09/2016", "01/08/2020",
+                    "01/01/2021",  "13/02/2020", "10/03/2020",
+                    "07/04/2020", "27/05/2020", "01/10/2019", "27/04/2020")
+)
+# 01/09/2016: Yield curve control introduction
+# 01/10/2019 - JP Tax hike (consumption) 
+# 27/04/2020 - Ramp up of QE by BoJ
+# "01/08/2020",
+# 13 February 2020: The government announced 1st COVID-19 emergency response package, key measures include home return support for Japanese travelers in abroad, strengthen of immigration control, and loan support for SMEs etc.
+# 10 March 2020: The government announced 2nd COVID-19 emergency response package, key measures include expansion of hospital beds for infected patient, additional loan support for companies and strengthening employment support measures etc.
+# 7 April 2020: The government announced 3rd emerging economic package to stimulate the economy. Total scale of the package is 117 trillion yen(1.1 trillion USD)  and it is equivalent to 22 percent of the country's GDP. About 3/4 of the budget was allocated to employment and business support, and the rest was allocated to healthcare system, consumption promotion campaign and public investment etc.
+# 27 May 2020: The government announced the additional economic stimulus package. Total scale of the package is 117 trillion yen(Same scale as the 3rd emerging economic package) . Key measures include establishment of rent fee support benefits for SMEs and provide subordinated loan for large companies etc.
+
+
+

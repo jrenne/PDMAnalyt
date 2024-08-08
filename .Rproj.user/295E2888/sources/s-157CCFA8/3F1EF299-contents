@@ -1,0 +1,306 @@
+rm(list = ls())
+
+# Load packages:
+library(tsDyn)
+library(vars)
+library(mnormt)
+library(Hmisc)
+library(expm)
+library(optimx)
+library(tikzDevice)
+library(stringr)
+library(doParallel)
+library(seasonal)
+library(mFilter)
+library(splines)
+library(zoo)
+library(Rcpp)
+library(RcppEigen)
+library(pracma)
+library(stargazer)
+library(lmtest)
+library(plm)
+library(sandwich)
+
+
+firstdiff <- 0 # run motiv reg in fd
+
+indic.vcov <- 1  # If Discroll-Kraay is required, insert: "DK"
+
+indic_trend <- 1
+
+# ====================================================
+# ====================================================
+
+
+start <- as.Date("01/01/2008","%d/%m/%Y")
+end <- as.Date("01/07/2022","%d/%m/%Y")
+time <- seq(start,end, by="quarter")
+
+
+# List of countries that will be considered:
+
+
+maturity <- c(8,20,40)
+
+ALL <- c("US", "EA", "UK", "JP")
+
+countries <- list(ALL)
+
+
+for(h in 1:length(maturity)){
+  for(k in 1:length(countries)){
+    list.of.ctries <- countries[[k]]
+    maturity.in.Q <- maturity[[h]]
+    data.cdsyds <- data.frame()
+    alldata <- data.frame(DATE=time)
+    alldata_mat <- data.frame(DATE=time)
+    
+    DATAtot <- NULL
+    count <- 0
+    for(ctry in list.of.ctries){
+      count <- count + 1
+      
+      # load dataset:
+      source(paste('load.data.files/load.data.',ctry,'.R',sep=""))
+      
+      rf_yds <- matrix(NA, ncol=1, nrow=length(DATA$DATE))
+      
+      indic.mat.yds <- which(DATA$maturity.yields==maturity.in.Q)
+      indic.mat.CDS <- which(DATA$maturity.CDS==maturity.in.Q)
+      
+      for(j in 1:length(DATA$DATE)){
+        if(is.na(DATA$CDS[j,indic.mat.CDS])){
+          rf_yds[j] <- NA 
+        }else{
+          rf_yds[j] <- DATA$yields[j,indic.mat.yds] - DATA$CDS[j,indic.mat.CDS] 
+        }
+      }
+      
+      eval(parse(text = gsub(" ","",
+                             paste(" data.cdsyds <- data.frame(DATE=DATA$DATE,CDS_",
+                                   ctry,"=DATA$CDS[,indic.mat.CDS],
+                                 yields_",ctry,"=DATA$yields[,indic.mat.yds],
+                                 trend_",ctry,"=1:length(DATA$yields[,indic.mat.yds]),
+                                 rf_yds_",ctry,"=rf_yds)",
+                                   sep=""))))
+      
+      alldata <- merge(data.cdsyds,alldata,by="DATE",all = TRUE)
+      
+      
+      eval(parse(text = gsub(" ","",
+                             paste(" data.cdsyds_mat <- data.frame(DATE=DATA$DATE,CDS_",
+                                   ctry,"_",indic.mat.yds,"=DATA$CDS[,indic.mat.CDS],
+                                 yields_",ctry,"_",indic.mat.yds,"=DATA$yields[,indic.mat.yds],
+                                 rf_yds_",ctry,"_",indic.mat.yds,"=rf_yds)",
+                                   sep=""))))
+      alldata_mat <- merge(data.cdsyds_mat,alldata_mat,by="DATE",all = TRUE)
+      eval(parse(text = gsub(" ","",
+                             paste("alldata_mat_",indic.mat.yds,"<- alldata_mat",
+                                   sep=""))))
+      
+      DATE <- alldata$DATE
+      
+      COUNTRY <- rep(ctry, length(DATE))
+      
+      eval(parse(text = gsub(" ","",paste("DATA.i <- data.frame(DATE=DATE,
+                                      rfyds = alldata$rf_yds_",ctry,",",
+                                          "yds = alldata$yields_",ctry,",",
+                                          "trend = alldata$trend_",ctry,",
+                                      cds = alldata$CDS_",ctry,")",
+                                          sep="")))) 
+      
+      DATAct <- data.frame(DATE,COUNTRY)
+      DATA_by_country <- merge(DATAct,DATA.i,by="DATE",all = TRUE)
+      
+      DATAtot <- rbind(DATAtot,DATA_by_country)
+      
+    }
+    
+    
+    
+    DATAydscds <- DATAtot 
+    
+    
+    PD <- DATAydscds
+    names(PD)[1] <- "TIME"
+    
+    library(lmtest)
+    library(plm)
+    
+    PDdf <- pdata.frame(PD, index = c("COUNTRY", "TIME"), drop.index = FALSE, row.names = TRUE,
+                        stringsAsFactors = FALSE,
+                        replace.non.finite = FALSE, drop.NA.series = FALSE,
+                        drop.const.series = FALSE, drop.unused.levels = FALSE)
+    
+    ################################################################################
+    
+    # RF yds & CDS #
+    
+    ################################################################################
+    plm_FD_rf <- plm(rfyds ~  cds + trend, data = PDdf, index=c("COUNTRY", "TIME"), model = "fd")
+    
+    if(firstdiff == 0){
+      trend_US <- (1:length(alldata$rf_yds_US))
+      trend_UK <- (1:length(alldata$rf_yds_UK))
+      trend_EA <- (1:length(alldata$rf_yds_EA))
+      trend_JP <- (1:length(alldata$rf_yds_JP))
+      
+      if(indic_trend==1){
+        US_reg <- lm(rf_yds_US ~ CDS_US + trend_US, data=alldata)
+        UK_reg <- lm(rf_yds_UK ~ CDS_UK + trend_UK, data=alldata)
+        EA_reg <- lm(rf_yds_EA ~ CDS_EA + trend_EA, data=alldata)
+        JP_reg <- lm(rf_yds_JP ~ CDS_JP + trend_JP, data=alldata)
+      }else{
+        US_reg <- lm(rf_yds_US ~ CDS_US, data=alldata)
+        UK_reg <- lm(rf_yds_UK ~ CDS_UK, data=alldata)
+        EA_reg <- lm(rf_yds_EA ~ CDS_EA, data=alldata)
+        JP_reg <- lm(rf_yds_JP ~ CDS_JP, data=alldata)
+      }
+    }else{
+      US_reg <- lm(rf_yds_US[2:length(rf_yds_US)]-rf_yds_US[1:(length(rf_yds_US)-1)]
+                   ~ CDS_US[2:length(CDS_US)]-CDS_US[1:(length(CDS_US)-1)], data=alldata)
+      UK_reg <- lm(rf_yds_UK[2:length(rf_yds_UK)]-rf_yds_UK[1:(length(rf_yds_UK)-1)]
+                   ~ CDS_UK[2:length(CDS_UK)]-CDS_UK[1:(length(CDS_UK)-1)], data=alldata)
+      EA_reg <- lm(rf_yds_EA[2:length(rf_yds_EA)]-rf_yds_EA[1:(length(rf_yds_EA)-1)]
+                   ~ CDS_EA[2:length(CDS_EA)]-CDS_EA[1:(length(CDS_EA)-1)], data=alldata)
+      JP_reg <- lm(rf_yds_JP[2:length(rf_yds_JP)]-rf_yds_JP[1:(length(rf_yds_JP)-1)]
+                   ~ CDS_JP[2:length(CDS_JP)]-CDS_JP[1:(length(CDS_JP)-1)], data=alldata)
+    }
+    US_reg.w <- coeftest(US_reg, vocv=NeweyWest(model,lag=2, prewhite=FALSE))
+    UK_reg.w <- coeftest(UK_reg, vocv=NeweyWest(model,lag=2, prewhite=FALSE))
+    EA_reg.w <- coeftest(EA_reg, vocv=NeweyWest(model,lag=2, prewhite=FALSE))
+    JP_reg.w <- coeftest(JP_reg, vocv=NeweyWest(model,lag=2, prewhite=FALSE))
+    
+    
+    # }
+    if(indic.vcov=="DK"){
+      plm_FD_rf.w <- coeftest(plm_FD_rf, vcov = vcovSCC)
+    }else{
+      plm_FD_rf.w <- coeftest(plm_FD_rf, vcov = vcovDC)
+    }
+    eval(parse(text = gsub(" ","",paste("regfd_",h,"_",k,"<- plm_FD_rf.w",sep=""))))
+    print(paste("maturity=",maturity[h]," and country set=",k,sep=""))
+    
+    eval(parse(text = gsub(" ","",paste("regUS_",h,"<- US_reg.w",sep=""))))
+    eval(parse(text = gsub(" ","",paste("regUK_",h,"<- UK_reg.w",sep=""))))
+    eval(parse(text = gsub(" ","",paste("regEA_",h,"<- EA_reg.w",sep=""))))
+    eval(parse(text = gsub(" ","",paste("regJP_",h,"<- JP_reg.w",sep=""))))
+    
+  }
+}
+ALLreg <- stargazer(
+  regfd_1_1,regfd_2_1,regfd_3_1,
+  covariate.labels = c("$CDS_{t}$",
+                       no.space=TRUE)
+)
+USreg <- stargazer(regUS_1,regUS_2,regUS_3,covariate.labels = c("$CDS_{t}$"),
+                   no.space=TRUE)
+UKreg <- stargazer(regUK_1,regUK_2,regUK_3,covariate.labels = c("$CDS_{t}$"),
+                   no.space=TRUE)
+EAreg <- stargazer(regEA_1,regEA_2,regEA_3,covariate.labels = c("$CDS_{t}$"),
+                   no.space=TRUE)
+JPreg <- stargazer(regJP_1,regJP_2,regJP_3,covariate.labels = c("$CDS_{t}$"),
+                   no.space=TRUE)
+
+AllDataMAT <- cbind(alldata_mat_1,alldata_mat_2,alldata_mat_3)
+
+# Latex table
+latex.table <- c(
+  "\\begin{table}[!htbp] \\centering 
+  \\caption{Risk-free nominal yields and CDS - Panel regression results} 
+   \\label{tab:rfycds}  
+\\begin{tabular*}{\\textwidth}{l@{\\extracolsep{\\fill}}ccc}
+\\hline 
+\\hline 
+\\\\
+& \\multicolumn{3}{c}{{\\bf Panel A} - \\textit{All countries}} \\\\ 
+& \\multicolumn{3}{c}{} \\\\ 
+& \\multicolumn{1}{c}{2-year} & \\multicolumn{1}{c}{5-year} & \\multicolumn{1}{c}{10-year}\\\\
+& $yield^{risk{\\text -}free}_{t}$ & $yield^{risk{\\text -}free}_{t}$ & $yield^{risk{\\text -}free}_{t}$\\\\
+\\hline \\\\")
+
+
+allreg.lines <- rbind(ALLreg[15],ALLreg[16])
+
+
+latex.table <- rbind(latex.table, allreg.lines)
+
+reg.line.cc <- c("\\hline 
+\\\\
+& \\multicolumn{3}{c}{{\\bf Panel B} - \\textit{Single-country}} \\\\ 
+& \\multicolumn{3}{c}{} \\\\ 
+& \\multicolumn{1}{c}{2-year} & \\multicolumn{1}{c}{5-year} & \\multicolumn{1}{c}{10-year}\\\\
+& $yield^{risk{\\text -}free}_{t}$ & $yield^{risk{\\text -}free}_{t}$ & $yield^{risk{\\text -}free}_{t}$\\\\
+\\hline \\\\
+\\textbf{United States} & \\multicolumn{2}{c}{} \\\\ 
+")
+
+latex.table <- rbind(latex.table, reg.line.cc)
+
+
+reg.lines.US <- rbind(USreg[15],USreg[16])
+
+
+latex.table <- rbind(latex.table, reg.lines.US)
+
+
+reg.line.cc <- c("\\hline \\\\
+\\textbf{United Kingdom} & \\multicolumn{2}{c}{} \\\\ 
+")
+
+latex.table <- rbind(latex.table, reg.line.cc)
+
+
+reg.lines.UK <- rbind(UKreg[15],UKreg[16])
+
+
+latex.table <- rbind(latex.table, reg.lines.UK)
+
+
+reg.line.cc <- c("\\hline \\\\
+\\textbf{Euro Area} & \\multicolumn{2}{c}{} \\\\ 
+")
+
+latex.table <- rbind(latex.table, reg.line.cc)
+
+
+reg.lines.EA <- rbind(EAreg[15],EAreg[16])
+
+
+latex.table <- rbind(latex.table, reg.lines.EA)
+
+
+reg.line.cc <- c("\\hline \\\\
+\\textbf{Japan} & \\multicolumn{2}{c}{} \\\\ 
+")
+
+latex.table <- rbind(latex.table, reg.line.cc)
+
+
+reg.lines.JP <- rbind(JPreg[15],JPreg[16])
+
+
+latex.table <- rbind(latex.table, reg.lines.JP)
+
+
+latex.table <- rbind(latex.table,
+                     "\\hline 
+                      \\hline 
+                      \\end{tabular*} 
+                      \\begin{footnotesize}
+                      \\parbox{\\linewidth}{
+                      Note: This table reports the results of panel regressions (in first differences) and single-country regressions of risk-free nominal yields on CDSs.
+                      Risk-free yields are constructed as the difference between nominal yields and CDS spreads of matching maturities as in \\cite{Monfort_Renne_2014}.
+                      Linear trends are included in the regressions.
+                      The estimation sample goes from $2004Q1$ to $2022Q3$.
+                      We employ two-way clustering for the standard errors (country and quarter) for the panel regression, while we use Newey-West standard errors for the single-country regressions. 
+                      $^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01}.
+                      \\end{footnotesize}
+                     \\end{table} ")
+
+
+latex.file <- "tables/PanelReg_rfydsCDS.tex"
+
+write(latex.table, latex.file)
+
