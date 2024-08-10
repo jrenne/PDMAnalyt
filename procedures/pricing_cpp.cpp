@@ -718,17 +718,23 @@ Rcpp::List compute_stat_distri_and_rbar(const Rcpp::List Model){
   
   Eigen::MatrixXd I_m = Eigen::MatrixXd::Identity(nb_m, nb_m) ;
   Eigen::MatrixXd OnepChiPstar = Eigen::MatrixXd::Zero(1, nb_m) ;
-  OnepChiPstar = add(mult(vec_1_m.transpose() * Mlast * (I_m - mult(Mbetw,chi)).inverse() * M1rst,chi),1) ;
+  Eigen::MatrixXd Pstar = Eigen::MatrixXd::Zero(nb_m, 1) ;
+  Eigen::MatrixXd rstar = Eigen::MatrixXd::Zero(nb_m, 1) ;
   
-  double r_bar = ((1 - chi) * (OnepChiPstar * stat_distri)(0,0) - 1) / (1 - (OnepChiPstar * stat_distri)(0,0)) ;
+  Pstar = (vec_1_m.transpose() * Mlast * (I_m - mult(Mbetw,chi)).inverse()  * M1rst).transpose() ;
+  rstar = add(Pstar.cwiseInverse(), - 1 + chi) ;
+  OnepChiPstar = add(mult(Pstar,chi),1) ;
   
-  return List::create(Named("r_bar") = r_bar,
-                      Named("stat_distri") = stat_distri,
-                      Named("OnepChiPstar") = OnepChiPstar
-  ) ;
+  double r_bar = 1/(Pstar * stat_distri)(0,0) - 1 + chi ;
   
-}
 
+  return List::create(Named("r_bar")        = r_bar,
+                      Named("stat_distri")  = stat_distri,
+                      Named("OnepChiPstar") = OnepChiPstar,
+                      Named("Pstar")        = Pstar,
+                      Named("rstar")        = rstar
+  ) ;
+}
 
 
 // [[Rcpp::export]]
@@ -834,8 +840,6 @@ Rcpp::List solve_ToyModel(const Eigen::MatrixXd all_d,
   //XXXXX
   rstar = add(Pstar.cwiseInverse(), - 1 + chi) ; // will be used to initialize q
 
-  double r_bar = ((1 - chi) * (OnepChiPstar * stat_distri)(0,0) - 1) / (1 - (OnepChiPstar * stat_distri)(0,0)) ;
-  
   Eigen::MatrixXd Mat_1 = Eigen::MatrixXd::Constant(nb_states, nb_m * nb_eps, 1) ;
   
   d   = kronecker_cpp(kronecker_cpp(kronecker_cpp(vec_1_m,vec_1_rr),vec_1_d),all_d) ;
@@ -874,8 +878,8 @@ Rcpp::List solve_ToyModel(const Eigen::MatrixXd all_d,
   
   Eigen::MatrixXd Matrix_beta = Eigen::MatrixXd::Constant(nb_states, nb_m * nb_eps, beta) ;
   
-  Eigen::MatrixXd q     = Eigen::MatrixXd::Constant(nb_states, 1, r_bar + .01) ; // vector of sovereign yields
-  Eigen::MatrixXd q0    = Eigen::MatrixXd::Constant(nb_states, 1, r_bar) ; // risk-free yields
+  Eigen::MatrixXd q     = Eigen::MatrixXd::Zero(nb_states, 1) ; // vector of sovereign yields
+  Eigen::MatrixXd q0    = Eigen::MatrixXd::Zero(nb_states, 1) ; // risk-free yields
   
   q  = kronecker_cpp(kronecker_cpp(kronecker_cpp(add(rstar,.001), vec_1_rr),vec_1_d),vec_1_d) ;
   q0 = kronecker_cpp(kronecker_cpp(kronecker_cpp(rstar,           vec_1_rr),vec_1_d),vec_1_d) ;
@@ -979,7 +983,6 @@ Rcpp::List solve_ToyModel(const Eigen::MatrixXd all_d,
                       Named("rr") = rr,
                       Named("Pi") = Pi,
                       Named("Dy") = Dy,
-                      Named("r_bar") = r_bar,
                       Named("q_chge") = q_chge,
                       Named("indicators_x") = indicators_x,
                       Named("all_f_tp1") = all_f_tp1,

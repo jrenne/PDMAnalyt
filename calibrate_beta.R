@@ -2,13 +2,15 @@
 # Calibration of beta
 # ==============================================================================
 
-candidate_values <- c(.05,.1,.2)
+candidate_alpha_values  <- c(.1,.3,.5,1)
+candidate_beta_values   <- c(.1,.2,.3)
+candidate_d_star_values <- c(.4,.6,.8)
 
 # Issuance of nominal bonds:
 Model$kappa_pi <- 0
 Model$kappa_y  <- 0
 
-nb_iter <- 30 # used to solve model
+nb_iter <- 20 # used to solve model
 
 res_stat_distri_and_rbar <- compute_stat_distri_and_rbar(Model)
 r_bar  <- res_stat_distri_and_rbar$r_bar
@@ -26,8 +28,13 @@ Model$chi <- 1 + q - 1/D
 # Values of debt and debt service at which we compute spread:
 DD <- 1.0
 indic_DD <- which.min(abs(all_d - DD))
-rr <- .03
+rr <- .04
 indic_rr <- which.min(abs(all_rr - rr))
+
+
+# Define targets:
+Targets <- list(spread_in_bps = 50,
+                mean_d_inpercent = 70)
 
 # Consider a model without default risk (to determine debt2GDP distribuiton):
 Model$beta <- .2
@@ -38,10 +45,78 @@ Model_RF$alpha <- 0
 
 res0_nominal <- solve_ToyModel(all_d,all_rr,all_eps,proba_eps,
                                Model_RF,nb_iter = nb_iter)
+
 # Compute unconditional distribution of d:
 p <- compute_uncond_distri(res0_nominal$indicators_x,res0_nominal$Probas,1000)
 distri_d  <- compute_distri_x(all_d,res0_nominal$d,p)
 plot(all_d,distri_d,type="l")
-distri_rr  <- compute_distri_x(all_rr,res0_nominal$rr,p)
-plot(all_rr,distri_rr,type="l")
 
+# res0_nominal <- solve_ToyModel(all_d,all_rr,all_eps,proba_eps,
+#                                Model,nb_iter = nb_iter)
+# # Compute unconditional distribution of d:
+# p <- compute_uncond_distri(res0_nominal$indicators_x,res0_nominal$Probas,1000)
+# distri_d  <- compute_distri_x(all_d,res0_nominal$d,p)
+# lines(all_d,distri_d,col="red")
+
+# distri_rr  <- compute_distri_x(all_rr,res0_nominal$rr,p)
+# plot(all_rr,distri_rr,type="l")
+
+best_distance <- 1000000
+
+for(alpha in candidate_alpha_values){
+  for(beta in candidate_beta_values){
+    for(d_star in candidate_d_star_values){
+      
+      Model$alpha  <- alpha
+      Model$beta   <- beta
+      Model$d_star <- d_star
+      
+      # Solve model:
+      res0_nominal <- solve_ToyModel(all_d,all_rr,all_eps,proba_eps,
+                                     Model,nb_iter = nb_iter)
+      
+      # Compute average of debt:
+      p <- compute_uncond_distri(res0_nominal$indicators_x,res0_nominal$Probas,1000)
+      distri_d  <- compute_distri_x(all_d,res0_nominal$d,p)
+      mean_d <- sum(distri_d * all_d)
+      
+      # Compute nominal yields:
+      res_prices_nominal <- compute_bond_prices(Model, maxH,
+                                                res0_nominal$indicators_x,
+                                                res0_nominal$all_proba_def,
+                                                res0_nominal$Probas)
+      # Compute risk-free nominal yields:
+      Model_RF <- Model
+      Model_RF$RR <- 1
+      res_prices_nominal_RF <- compute_bond_prices(Model_RF, maxH,
+                                                   res0_nominal$indicators_x,
+                                                   res0_nominal$all_proba_def,
+                                                   res0_nominal$Probas)
+      
+      spreads <- res_prices_nominal$all_rth - res_prices_nominal_RF$all_rth
+      
+      Ts <- which((res0_nominal$d==all_d[indic_DD])&
+                    (res0_nominal$d_1==all_d[indic_DD])&(res0_nominal$rr==all_rr[indic_rr]))
+      
+      avg_spreads <- c(t(stat_distri) %*% spreads[Ts,])
+      
+      spread_in_bps    <- 10000*avg_spreads[10]
+      mean_d_inpercent <- 100*mean_d
+      
+      distance <- (spread_in_bps - Targets$spread_in_bps)^2 +
+        (mean_d_inpercent - Targets$mean_d_inpercent)^2
+      
+      print("------------------------------")
+      print(paste("Value of beta: ",beta,", value of d_star: ",d_star,sep=""))
+      print(paste("Average spread (in bps): ",round(spread_in_bps,1),sep=""))
+      print(paste("Average debt (in percent): ",round(mean_d_inpercent,1),sep=""))
+      print(paste("Distance to target: ",distance,sep=""))
+      
+      if(distance < best_distance){
+        best <- list(alpha=alpha,
+                     beta=beta,
+                     d_star=d_star)
+      }
+    }
+  }
+}
