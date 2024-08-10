@@ -612,7 +612,7 @@ Rcpp::List compute_bond_prices(const Rcpp::List Model,
   Eigen::MatrixXd all_exp_f_tp1     = Eigen::MatrixXd::Zero(nb_states,nb_eps * nb_m) ;
   Eigen::MatrixXd all_exp_f_tp1_nu  = Eigen::MatrixXd::Zero(nb_states,nb_eps * nb_m) ;
   all_exp_f_tp1    = (all_f_tp1.array()).exp() ;
-
+  
   double RR_nu = RR * exp(nu) ;
   
   for (int h = 0; h < maxH; h++){
@@ -826,10 +826,14 @@ Rcpp::List solve_ToyModel(const Eigen::MatrixXd all_d,
   M1rst = D1rst ;
   
   Eigen::MatrixXd I_m = Eigen::MatrixXd::Identity(nb_m, nb_m) ;
+  Eigen::MatrixXd Pstar        = Eigen::MatrixXd::Zero(nb_m, 1) ;
+  Eigen::MatrixXd rstar        = Eigen::MatrixXd::Zero(nb_m, 1) ;
   Eigen::MatrixXd OnepChiPstar = Eigen::MatrixXd::Zero(1, nb_m) ;
-  OnepChiPstar = add(mult(vec_1_m.transpose() * Mlast * (I_m - mult(Mbetw,chi)).inverse() * M1rst,chi),1) ;
+  Pstar        = (vec_1_m.transpose() * Mlast * (I_m - mult(Mbetw,chi)).inverse() * M1rst).transpose() ;
+  OnepChiPstar = add(mult(Pstar.transpose(),chi),1) ;
   //XXXXX
-  
+  rstar = add(Pstar.cwiseInverse(), - 1 + chi) ; // will be used to initialize q
+
   double r_bar = ((1 - chi) * (OnepChiPstar * stat_distri)(0,0) - 1) / (1 - (OnepChiPstar * stat_distri)(0,0)) ;
   
   Eigen::MatrixXd Mat_1 = Eigen::MatrixXd::Constant(nb_states, nb_m * nb_eps, 1) ;
@@ -868,8 +872,13 @@ Rcpp::List solve_ToyModel(const Eigen::MatrixXd all_d,
   Eigen::MatrixXd all_q0_t  = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
   Eigen::MatrixXd all_s_m_t = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
   
+  Eigen::MatrixXd Matrix_beta = Eigen::MatrixXd::Constant(nb_states, nb_m * nb_eps, beta) ;
+  
   Eigen::MatrixXd q     = Eigen::MatrixXd::Constant(nb_states, 1, r_bar + .01) ; // vector of sovereign yields
   Eigen::MatrixXd q0    = Eigen::MatrixXd::Constant(nb_states, 1, r_bar) ; // risk-free yields
+  
+  q  = kronecker_cpp(kronecker_cpp(kronecker_cpp(add(rstar,.001), vec_1_rr),vec_1_d),vec_1_d) ;
+  q0 = kronecker_cpp(kronecker_cpp(kronecker_cpp(rstar,           vec_1_rr),vec_1_d),vec_1_d) ;
   
   Eigen::MatrixXd AUX = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
   
@@ -915,6 +924,9 @@ Rcpp::List solve_ToyModel(const Eigen::MatrixXd all_d,
         mult(add(all_d_t, - d_star),beta).array() -
         all_eta_tp1.array() + all_rr_tp1.array() ;
       
+      // all_d_tp1  = all_zeta_tp1.array() * all_d_t.array() -
+      //   Matrix_beta.array() - all_eta_tp1.array() + all_rr_tp1.array() ;
+      
       indicators_d_tp1  = find_closest_in_vec(all_d_tp1,all_d) ;
       indicators_rr_tp1 = find_closest_in_vec(all_rr_tp1,all_rr) ;
       
@@ -926,6 +938,7 @@ Rcpp::List solve_ToyModel(const Eigen::MatrixXd all_d,
       // Compute probabilities of default:
       all_lambdas = pmax_cpp(
         add(mult(add(all_d_t, - d_star),beta).array() + all_eta_tp1.array(), - s_star),0) ;
+      // all_lambdas = pmax_cpp(add(all_d_t, - d_star),0) ;
       
       all_proba_def = add(- ((mult(all_lambdas,-alpha)).array()).exp(),1) ;
       
@@ -940,9 +953,9 @@ Rcpp::List solve_ToyModel(const Eigen::MatrixXd all_d,
           add(all_q_tp1,1).array() * (add(all_q_tp1,1 - chi).cwiseInverse()).array()).array()
       ).array() ;
       
-      Q = add((E.cwiseInverse()).array(),chi - 1).array() * Probas.array() ;
-      q = Q * vec_1_m_eps ; // update q
-      
+      Q = E.array() * Probas.array() ;
+      q = add((Q * vec_1_m_eps).cwiseInverse(),chi - 1) ; // update q
+
       // Update q0 (risk-free yield, obtained for RR=1):
       all_q0_tp1 = fill_from_indic(indicators_x, q0) ;
       
@@ -976,7 +989,9 @@ Rcpp::List solve_ToyModel(const Eigen::MatrixXd all_d,
                       Named("all_proba_def") = all_proba_def,
                       Named("Probas") = Probas,
                       Named("stat_distri") = stat_distri,
-                      Named("OnepChiPstar") = OnepChiPstar
+                      Named("OnepChiPstar") = OnepChiPstar,
+                      Named("Pstar") = Pstar,
+                      Named("rstar") = rstar
   ) ;
 }
 
@@ -1041,7 +1056,7 @@ Eigen::MatrixXd compute_multivariate_normal(const Eigen::MatrixXd epsilon_matrix
   double pi = 3.141592653589793238462643383 ;
   
   double aux = -.5 * nb_eps * log(2*pi) -.5 * log(det_Covariance) ;
-
+  
   loglik = add(mult(vec_Covariance_inv * vec_1_eps2, -0.5),aux) ;
   
   return loglik ;

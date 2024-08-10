@@ -67,9 +67,11 @@ solve_ToyModel_notRcpp <- function(all_d,all_rr,all_eps,proba_def,
   Mlast <- Dlast %*% t(Omega)
   Mbetw <- Dbetw %*% t(Omega)
   M1rst <- D1rst
-  OnepChiPstar <- 1 +
-    chi * t(vec_ones_m) %*% Mlast %*% solve(diag(nb_m) - chi * Mbetw) %*% M1rst
+  Pstar = t(vec_ones_m) %*% Mlast %*% solve(diag(nb_m) - chi * Mbetw) %*% M1rst
+  OnepChiPstar <- 1 + chi * Pstar
   avg_LT_price <- c(OnepChiPstar %*% stat_distri)
+  rstar <- t(1/Pstar - 1 + chi) # will be used to initialize q
+  
   #r_bar <- 1/avg_LT_price - 1 + chi
   r_bar <- ((1 - chi) * sum(OnepChiPstar * stat_distri) - 1) / (1 - sum(OnepChiPstar * stat_distri)) ;
   
@@ -86,8 +88,8 @@ solve_ToyModel_notRcpp <- function(all_d,all_rr,all_eps,proba_def,
   #   matrix(1,nb_grid_d^2*nb_grid_rr,1)
   Probas <- (Omega %x% t(proba_eps)) %x% matrix(1,nb_grid_d^2*nb_grid_rr,1)
   
-  q   <- matrix(r_bar + .01, nb_states, 1)
-  q0  <- matrix(r_bar, nb_states, 1) # risk-free rate
+  q   <- (rstar + .001) %x% matrix(1,nb_grid_d^2*nb_grid_rr,1)
+  q0  <- (rstar + .00 ) %x% matrix(1,nb_grid_d^2*nb_grid_rr,1) # risk-free rate
   
   q_1 <- q # this is used to compute chges in the recursions
   
@@ -112,7 +114,7 @@ solve_ToyModel_notRcpp <- function(all_d,all_rr,all_eps,proba_def,
       all_d_tp1  <- all_zeta_tp1 * all_d_t - beta * (all_d_t - d_star) -
         all_eta_tp1 + all_rr_tp1
       
-      # match the previous states to the closest ones in the grid
+      # Match the previous states to the closest ones in the grid
       indicators_d_tp1   <- apply(all_d_tp1,   c(1,2),function(x){which((x-all_d )^2==min((x-all_d )^2))[1]})
       indicators_rr_tp1  <- apply(all_rr_tp1,  c(1,2),function(x){which((x-all_rr)^2==min((x-all_rr)^2))[1]})
       
@@ -128,9 +130,8 @@ solve_ToyModel_notRcpp <- function(all_d,all_rr,all_eps,proba_def,
       E <- exp(all_f_tp1) * ((1 + all_q_tp1)/(1 + all_q_tp1 - chi) +
                                all_proba_def * (exp(nu)*RR*all_OnepChiPstar -
                                                   (1 + all_q_tp1)/(1 + all_q_tp1 - chi)))
-      Q <- (chi - 1 + 1/E) * Probas
-      q <- apply(Q,1,sum) # update q
-      
+      q <- chi - 1 + 1/apply(E * Probas,1,sum)
+
       # Computation of risk free rate (RR=1):
       all_q0_tp1 <- matrix(q0[c(indicators_x)],nb_states,nb_eps*nb_m)
       E0 <- exp(all_f_tp1) * ((1 + all_q0_tp1)/(1 + all_q0_tp1 - chi) +
@@ -164,11 +165,13 @@ solve_ToyModel_notRcpp <- function(all_d,all_rr,all_eps,proba_def,
     mu_f0 = mu_f0,
     mu_f1 = mu_f1,
     nu = nu,
-    OnepChiPstar = OnepChiPstar,
     stat_distri = stat_distri,
     M1rst = M1rst,
     Mbetw = Mbetw,
-    Mlast = Mlast))
+    Mlast = Mlast,
+    OnepChiPstar = OnepChiPstar,
+    Pstar = Pstar,
+    rstar = rstar))
 }
 
 compute_LTRF_bond_prices_notRcpp <- function(Model,
@@ -288,21 +291,21 @@ inv_logist <- function(x){
   return(log(x/(1-x)))
 }
 
-compute_LT_yds <- function(Model){
-  Model_nominal <- Model
-  Model_nominal$kappa_pi <- 0
-  Model_nominal$kappa_y  <- 0
-  res_LTprices <- compute_LTRF_bond_prices(Model_nominal,maxH=10)
-  avgLT_nom_yields  <- c(t(res_LTprices$stat_distri) %*% res_LTprices$all_LT_rth)
-  Model_real <- Model
-  Model_real$kappa_pi <- 1
-  Model_real$kappa_y  <- 0
-  res_LTprices <- compute_LTRF_bond_prices(Model_real,maxH=10)
-  avgLT_rea_yields  <- c(t(res_LTprices$stat_distri) %*% res_LTprices$all_LT_rth)
-  return(list(yds_nom = avgLT_nom_yields,
-              yds_rea = avgLT_rea_yields,
-              stat_distri = res_LTprices$stat_distri))
-}
+# compute_LT_yds <- function(Model){
+#   Model_nominal <- Model
+#   Model_nominal$kappa_pi <- 0
+#   Model_nominal$kappa_y  <- 0
+#   res_LTprices <- compute_LTRF_bond_prices(Model_nominal,maxH=10)
+#   avgLT_nom_yields  <- c(t(res_LTprices$stat_distri) %*% res_LTprices$all_LT_rth)
+#   Model_real <- Model
+#   Model_real$kappa_pi <- 1
+#   Model_real$kappa_y  <- 0
+#   res_LTprices <- compute_LTRF_bond_prices(Model_real,maxH=10)
+#   avgLT_rea_yields  <- c(t(res_LTprices$stat_distri) %*% res_LTprices$all_LT_rth)
+#   return(list(yds_nom = avgLT_nom_yields,
+#               yds_rea = avgLT_rea_yields,
+#               stat_distri = res_LTprices$stat_distri))
+# }
 
 
 make_model <- function(param){
@@ -347,29 +350,46 @@ model2param <- function(Model){
 }
 
 compute_distance <- function(param,targets){
-  Model <- make_model(param)
-  yds <- compute_LT_yds(Model)
-  yds_nom <- yds$yds_nom
-  yds_rea <- yds$yds_rea
+  Model   <- make_model(param)
   
-  stat_distri <- yds$stat_distri
+  # Nominal yields:
+  Model_nominal <- Model
+  Model_nominal$kappa_pi <- 0
+  Model_nominal$kappa_y  <- 0
+  res_LTnominal_prices <- compute_LTRF_bond_prices(Model_nominal,maxH=10)
+  stat_distri <- res_LTnominal_prices$stat_distri
+  avg_nom_yds <- c(t(stat_distri) %*% res_LTnominal_prices$all_LT_rth)
+  
+  # Real yields:
+  Model_real <- Model
+  Model_real$kappa_pi <- 1
+  Model_real$kappa_y  <- 0
+  res_LTreal_prices <- compute_LTRF_bond_prices(Model_real,maxH=10)
+  avg_real_yds <- c(t(stat_distri) %*% res_LTreal_prices$all_LT_rth)
+
+  # Average inflation and GDP growth:
   avg_Pi <- sum(stat_distri * Model$mu_pi)
   avg_Dy <- sum(stat_distri * Model$mu_Dy)
   
-  distance <- 10000000 * ((yds_nom[10] - yds_nom[1] - targets$target_slop_nom)^2 +
-                            .25*(yds_nom[10] - targets$target_10_nom)^2 +
-                            (yds_rea[10] - yds_rea[1] - targets$target_slop_rea)^2 +
-                            .25*(yds_rea[10] - targets$target_10_rea)^2 + 
-                            0*(avg_Pi - targets$target_avg_Pi)^2 +
-                            0*(avg_Dy - targets$target_avg_Dy)^2)
+  Var_nom_yds  <- t(stat_distri) %*% res_LTnominal_prices$all_LT_rth^2 - avg_nom_yds^2
+  Var_real_yds <- t(stat_distri) %*% res_LTreal_prices$all_LT_rth^2    - avg_real_yds^2
+  
+  Std_nom_yds  <- sqrt(Var_nom_yds)
+  Std_real_yds <- sqrt(Var_real_yds)
+  
+  distance <- 10000000 * ((avg_nom_yds[10] - avg_nom_yds[1] - targets$target_slop_nom)^2 +
+                            .25*(avg_nom_yds[10] - targets$target_10_nom)^2 +
+                            (avg_real_yds[10] - avg_real_yds[2] - targets$target_slop_rea)^2 +
+                            .25*(avg_real_yds[10] - targets$target_10_rea)^2 + 
+                            .0*(avg_Pi - targets$target_avg_Pi)^2 +
+                            .0*(avg_Dy - targets$target_avg_Dy)^2 +
+                            .0 * (Std_nom_yds[10]  - targets$target_std_10_nom)^2 +
+                            .2 * (Std_real_yds[10] - targets$target_std_10_rea)^2)
   return(distance)
 }
 
 
-compute_loglik <- function(param){
-  
-  Model <- make_model(param)
-  
+make_StateSpace <- function(Model){
   # Compute (LT) bond prices:
   Model_nominal <- Model
   Model_nominal$kappa_pi <- 0
@@ -390,8 +410,21 @@ compute_loglik <- function(param){
              DATA$dy,
              DATA$SVENY01/100,
              DATA$SVENY10/100)
-  
+  dates <- DATA$date[complete.cases(F)]
   F <- F[complete.cases(F),]
+  
+  return(list(M=M,N=N,F=F,dates=dates))
+}
+
+compute_loglik <- function(param){
+  
+  Model <- make_model(param)
+  
+  res_SS <- make_StateSpace(Model)
+  M <- res_SS$M
+  N <- res_SS$N
+  F <- res_SS$F
+  
   res_KH <- KH_filter(F,M,N,Model$Omega)
   # res_KH_noRcpp <- KH_filter_notRcpp(F,M,N,Model$Omega)
   # print(c(res_KH$loglik,res_KH_noRcpp$loglik))

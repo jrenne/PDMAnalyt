@@ -1,23 +1,37 @@
 
 
+source("make_grids.R")
+
+#Model <- make_model(param)
+
 #Model$nu_y <- -.4
 
-mean_pi <- .03
-mean_y  <- .02
+stat_distri <- compute_stat_distri(Model)
 
 #Model$gamma <- .1
 Model$RR    <- 0.3
 
 chi <- .6
 
-nb_iter <- 40 # used to solve the model
+# ================================
+# ================================
+# ================================
+nb_iter <- 30 # used to solve the model
+# ================================
+# ================================
+# ================================
 
-Model$mu_pi <- matrix(mean_pi,length(Model$mu_pi))
-Model$mu_y  <- matrix(mean_y, length(Model$mu_pi))
+# mean_pi <- .03
+# mean_y  <- .015
+# Model$mu_pi <- matrix(mean_pi,length(Model$mu_pi))
+# Model$mu_y  <- matrix(mean_y, length(Model$mu_pi))
+
+mean_pi <- c(t(stat_distri) %*% Model$mu_pi)
+mean_y  <- c(t(stat_distri) %*% Model$mu_y)
 
 Model$mu_eta <- 1 * Model$mu_y
 Model$d_star <- .3
-Model$alpha  <- .5
+Model$alpha  <- .0
 Model$beta   <- .1
 
 # Issuance of nominal bonds:
@@ -28,10 +42,22 @@ r_bar  <- res_stat_distri_and_rbar$r_bar
 max_rr <- (r_bar + .1) * Model$d_star
 all_rr <- seq(0,max_rr,length.out = nb_grid)
 all_rr <- matrix(all_rr,ncol=1)
-Model$chi <- chi / exp((Model$kappa_pi - 1)*mean_pi + (Model$kappa_y - 1)*mean_y)
+#Model$chi <- chi / exp((Model$kappa_pi - 1)*mean_pi + (Model$kappa_y - 1)*mean_y)
+Model$chi <- chi / exp(Model$kappa_pi*mean_pi + Model$kappa_y*mean_y)
 #Model$chi <- chi
 res0_nominal <- solve_ToyModel(all_d,all_rr,all_eps,proba_eps,
                                Model,nb_iter = nb_iter)
+
+# res0_nominal <- solve_ToyModel(all_d,all_rr,all_eps,proba_eps,
+#                                Model,nb_iter = nb_iter)
+# res0_nominal_notRcpp <- solve_ToyModel_notRcpp(all_d,all_rr,all_eps,proba_eps,
+#                                Model,nb_iter = nb_iter)
+# res0_nominal$q[c(1,400,1000,30000)]
+# res0_nominal_notRcpp$q[c(1,400,1000,30000)]
+# 
+# stop()
+
+maxH <- 10
 res_LTprices_nominal <- compute_LTRF_bond_prices(Model,maxH)
 avgLT_ExpReturns_nominal  <- c(t(res0_nominal$stat_distri) %*% res_LTprices_nominal$all_LT_ExpReturn_th)
 PD_nominal <- compute_proba_def(maxH=maxH,
@@ -51,11 +77,12 @@ res_prices_nominal_RF <- compute_bond_prices(Model_RF, maxH,
                                              res0_nominal$all_proba_def,
                                              res0_nominal$Probas)
 
-plot(res_LTprices_nominal$all_LT_rth[1,],ylim=c(.05,.065))
+#plot(res_LTprices_nominal$all_LT_rth[1,],ylim=c(.05,.065))
+plot(res_LTprices_nominal$all_LT_rth[1,])
 lines(res_prices_nominal_RF$all_rth[1,])
 lines(res_prices_nominal$all_rth[1,],col="red")
 
-stop()
+
 
 # Compute unconditional distribution of d:
 p <- compute_uncond_distri(res0_nominal$indicators_x,res0_nominal$Probas,10000)
@@ -72,7 +99,8 @@ r_bar  <- res_stat_distri_and_rbar$r_bar
 max_rr <- (r_bar + .1) * Model$d_star
 all_rr <- seq(0,max_rr,length.out = nb_grid)
 all_rr <- matrix(all_rr,ncol=1)
-Model$chi <- chi / exp((Model$kappa_pi - 1)*mean_pi + (Model$kappa_y - 1)*mean_y)
+#Model$chi <- chi / exp((Model$kappa_pi - 1)*mean_pi + (Model$kappa_y - 1)*mean_y)
+Model$chi <- chi / exp(Model$kappa_pi*mean_pi + Model$kappa_y*mean_y)
 #Model$chi <- chi
 res0_TIPS <- solve_ToyModel(all_d,all_rr,all_eps,proba_eps,
                             Model,nb_iter = nb_iter)
@@ -91,7 +119,8 @@ r_bar  <- res_stat_distri_and_rbar$r_bar
 max_rr <- (r_bar + .1) * Model$d_star
 all_rr <- seq(0,max_rr,length.out = nb_grid)
 all_rr <- matrix(all_rr,ncol=1)
-Model$chi <- chi / exp((Model$kappa_pi - 1)*mean_pi + (Model$kappa_y - 1)*mean_y)
+#Model$chi <- chi / exp((Model$kappa_pi - 1)*mean_pi + (Model$kappa_y - 1)*mean_y)
+Model$chi <- chi / exp(Model$kappa_pi*mean_pi + Model$kappa_y*mean_y)
 #Model$chi <- chi
 res0_GDPLB <- solve_ToyModel(all_d,all_rr,all_eps,proba_eps,
                              Model,nb_iter = nb_iter)
@@ -107,7 +136,7 @@ par(mfrow=c(1,2))
 v <- which(all_d==max(all_d))
 v <- which(all_d==d_star)
 v <- which(all_d==min(all_d))
-v <- 16
+v <- 10
 Ts <- which((res0_nominal$d==all_d[v])&(res0_nominal$d_1==min(all_d))&(res0_nominal$rr==0))
 
 

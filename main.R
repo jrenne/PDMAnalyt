@@ -31,6 +31,7 @@ indic_load_data <- 0
 # library(zoo)
 library(Rcpp)
 library(RcppEigen)
+library(optimx)
 # library(pracma)
 
 # Load procedures:
@@ -47,9 +48,10 @@ if(indic_estim == 1){
   }else{
     load(file="Data/data.Rda")
   }
+  start_year <- "1968"
   source("estimation/run_estim.R")
 }else{
-  load(file="results/res_772024.Rdat")
+  load(file="results/res_882024.Rdat")
 }
 
 # ---- Test PDM framework ------------------------------------------------------
