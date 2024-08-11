@@ -36,7 +36,6 @@ library(optimx)
 
 # Load procedures:
 source("procedures/proc_toymodel.R")
-source("procedures/pricing.R")
 sourceCpp("procedures/pricing_cpp.cpp") # load C++ functions
 
 # ---- Model calibration -------------------------------------------------------
@@ -58,15 +57,4 @@ if(indic_estim == 1){
 nb_iter <- 10 # number of iterations used to solve for perpetuity yields
 maxH    <- 20
 source("make_grids.R")
-source("make_figures_toymodel.R")
-
-
-
-
-stop()
-
-# ---- Toy model ---------------------------------------------------------------
-source("ToyModel/make_toymodel.R")
-source("ToyModel/make_figures_toymodel.R")
-# ------------------------------------------------------------------------------
 

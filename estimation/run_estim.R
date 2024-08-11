@@ -62,7 +62,7 @@ beta      <- .3      # sensitivity of surplus to debt level
 d_star    <- .6      # targeted debt level
 sigma_eps <- .04     # std dev of surplus shocks
 alpha     <- 1     # elasticity of default proba
-s_star    <- .03     # max surplus
+s_star    <- .05     # max surplus
 nu_y      <- -.2 * 0
 nu_pi     <- .05 * 0
 
@@ -129,6 +129,7 @@ for(ii in 1:nb_loops){
 }
 #save(Model,file="results/res_772024.Rdat")
 #save(Model,file="results/res_882024.Rdat")
+#save(Model,file="results/res_11082024.Rdat")
 
 compute_total_distance(param,targets)
 

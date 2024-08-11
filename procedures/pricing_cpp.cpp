@@ -882,7 +882,7 @@ Rcpp::List solve_ToyModel(const Eigen::MatrixXd all_d,
   Eigen::MatrixXd q0    = Eigen::MatrixXd::Zero(nb_states, 1) ; // risk-free yields
   
   q  = kronecker_cpp(kronecker_cpp(kronecker_cpp(add(rstar,.001), vec_1_rr),vec_1_d),vec_1_d) ;
-  q0 = kronecker_cpp(kronecker_cpp(kronecker_cpp(rstar,           vec_1_rr),vec_1_d),vec_1_d) ;
+  q0 = kronecker_cpp(kronecker_cpp(kronecker_cpp(add(rstar,.000), vec_1_rr),vec_1_d),vec_1_d) ;
   
   Eigen::MatrixXd AUX = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
   

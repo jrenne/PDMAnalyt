@@ -2,9 +2,13 @@
 # Calibration of beta
 # ==============================================================================
 
-candidate_alpha_values  <- c(.1,.3,.5,1)
+Model$s_star <- .05
+candidate_alpha_values  <- c(.1,.3,.5)
 candidate_beta_values   <- c(.1,.2,.3)
 candidate_d_star_values <- c(.4,.6,.8)
+
+Model$RR <- .4
+Model$mu_eta <- 1 * Model$mu_y
 
 # Issuance of nominal bonds:
 Model$kappa_pi <- 0
@@ -25,16 +29,15 @@ q <- c(t(stat_distri) %*% res_LTnominal_prices$all_LT_rth[,10])
 D <- 6
 Model$chi <- 1 + q - 1/D
 
-# Values of debt and debt service at which we compute spread:
-DD <- 1.0
-indic_DD <- which.min(abs(all_d - DD))
-rr <- .04
-indic_rr <- which.min(abs(all_rr - rr))
-
+# # Values of debt and debt service at which we compute spread:
+# DD <- 1.0
+# indic_DD <- which.min(abs(all_d - DD))
+# rr <- .04
+# indic_rr <- which.min(abs(all_rr - rr))
 
 # Define targets:
 Targets <- list(spread_in_bps = 50,
-                mean_d_inpercent = 70)
+                mean_d_in_percent = 70)
 
 # Consider a model without default risk (to determine debt2GDP distribuiton):
 Model$beta <- .2
@@ -95,28 +98,39 @@ for(alpha in candidate_alpha_values){
       
       spreads <- res_prices_nominal$all_rth - res_prices_nominal_RF$all_rth
       
-      Ts <- which((res0_nominal$d==all_d[indic_DD])&
-                    (res0_nominal$d_1==all_d[indic_DD])&(res0_nominal$rr==all_rr[indic_rr]))
-      
-      avg_spreads <- c(t(stat_distri) %*% spreads[Ts,])
+      avg_spreads <- c(t(p) %*% spreads)
       
       spread_in_bps    <- 10000*avg_spreads[10]
-      mean_d_inpercent <- 100*mean_d
+      mean_d_in_percent <- 100*mean_d
       
       distance <- (spread_in_bps - Targets$spread_in_bps)^2 +
-        (mean_d_inpercent - Targets$mean_d_inpercent)^2
+        (mean_d_in_percent - Targets$mean_d_in_percent)^2
       
       print("------------------------------")
-      print(paste("Value of beta: ",beta,", value of d_star: ",d_star,sep=""))
+      print(paste("Value of alpha: ",alpha,"; value of beta: ",beta,
+                  "; value of d_star: ",d_star,sep=""))
       print(paste("Average spread (in bps): ",round(spread_in_bps,1),sep=""))
-      print(paste("Average debt (in percent): ",round(mean_d_inpercent,1),sep=""))
+      print(paste("Average debt (in percent): ",round(mean_d_in_percent,1),sep=""))
       print(paste("Distance to target: ",distance,sep=""))
       
       if(distance < best_distance){
-        best <- list(alpha=alpha,
-                     beta=beta,
-                     d_star=d_star)
+        best <- list(alpha = alpha,
+                     beta = beta,
+                     d_star = d_star,
+                     spread_in_bps = spread_in_bps,
+                     mean_d_in_percent = mean_d_in_percent,
+                     distance = distance,
+                     p = p,
+                     distri_d = distri_d)
+        best_distance <- distance
       }
     }
   }
 }
+
+Model$alpha  <- best$alpha
+Model$beta   <- best$beta
+Model$d_star <- best$d_star
+
+plot(all_d,best$distri_d,type="l")
+
