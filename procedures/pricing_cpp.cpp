@@ -725,8 +725,7 @@ Rcpp::List compute_stat_distri_and_rbar(const Rcpp::List Model){
   rstar = add(Pstar.cwiseInverse(), - 1 + chi) ;
   OnepChiPstar = add(mult(Pstar,chi),1) ;
   
-  double r_bar = 1/(Pstar * stat_distri)(0,0) - 1 + chi ;
-  
+  double r_bar = 1/(Pstar.transpose() * stat_distri)(0,0) - 1 + chi ;
 
   return List::create(Named("r_bar")        = r_bar,
                       Named("stat_distri")  = stat_distri,

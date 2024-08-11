@@ -50,7 +50,7 @@ if(indic_estim == 1){
   start_year <- "1968"
   source("estimation/run_estim.R")
 }else{
-  load(file="results/res_882024.Rdat")
+  load(file="results/res_11082024.Rdat")
 }
 
 # ---- Test PDM framework ------------------------------------------------------

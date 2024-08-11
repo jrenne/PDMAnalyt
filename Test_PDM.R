@@ -85,10 +85,12 @@ res_prices_nominal_RF <- compute_bond_prices(Model_RF, maxH,
 
 # Compute unconditional distribution of d:
 p_nominal <- compute_uncond_distri(res0_nominal$indicators_x,res0_nominal$Probas,10000)
-distri_d  <- compute_distri_x(all_d,res0_nominal$d,p)
+distri_d  <- compute_distri_x(all_d,res0_nominal$d,p_nominal)
 plot(all_d,distri_d,type="l")
 # distri_Dy <- compute_distri_x(Model$mu_y,res0_nominal$Dy,p)
 # plot(Model$mu_y,distri_Dy)
+
+
 
 # Issuance of ILBs:
 Model$kappa_pi <- 1
@@ -136,15 +138,15 @@ PD_GDPLB <- compute_proba_def(maxH=maxH,
 
 
 par(mfrow=c(1,2))
-v <- which(all_d==max(all_d))
-v <- which(all_d==d_star)
-v <- which(all_d==min(all_d))
-v <- which.min(abs(all_d - .7))
-Ts <- which((res0_nominal$d==all_d[v])&(res0_nominal$d_1==min(all_d))&(res0_nominal$rr==0))
 
-plot(c(t(res0_nominal$stat_distri) %*% PD_nominal[Ts,]))
-lines(c(t(res0_TIPS$stat_distri)   %*% PD_TIPS[Ts,]),col="blue")
-lines(c(t(res0_GDPLB$stat_distri)  %*% PD_GDPLB[Ts,]),col="red")
+# v <- which(all_d==max(all_d))
+# v <- which(all_d==d_star)
+# v <- which(all_d==min(all_d))
+# v <- which.min(abs(all_d - .7))
+# Ts <- which((res0_nominal$d==all_d[v])&(res0_nominal$d_1==min(all_d))&(res0_nominal$rr==0))
+# plot(c(t(res0_nominal$stat_distri) %*% PD_nominal[Ts,]))
+# lines(c(t(res0_TIPS$stat_distri)   %*% PD_TIPS[Ts,]),col="blue")
+# lines(c(t(res0_GDPLB$stat_distri)  %*% PD_GDPLB[Ts,]),col="red")
 
 plot(c(t(p_nominal) %*% PD_nominal))
 lines(c(t(p_TIPS)   %*% PD_TIPS),col="blue")

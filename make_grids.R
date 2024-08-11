@@ -1,5 +1,5 @@
 
-nb_grid <- 21 # number of values per state variable
+nb_grid <- 27 # number of values per state variable
 
 # Determine debt's grid:
 center_d <- d_star
