@@ -2,10 +2,10 @@
 # Calibration of beta
 # ==============================================================================
 
-nb_grid <- 23
+nb_grid <- 23 # number of values per state variable
 source("make_grids.R")
 
-Model$s_star <- .05
+Model$s_star <- .06
 candidate_alpha_values  <- c(.1,.3,.5)
 candidate_beta_values   <- c(.1,.2,.3)
 candidate_d_star_values <- c(.4,.6,.8)
@@ -26,7 +26,7 @@ all_rr <- seq(0,max_rr,length.out = nb_grid)
 all_rr <- matrix(all_rr,ncol=1)
 
 # Determine Chi by fitting average debt maturity:
-res_LTprices_nominal <- compute_LTRF_bond_prices(Model,maxH = 10)
+res_LTnominal_prices <- compute_LTRF_bond_prices(Model,maxH = 10)
 stat_distri <- res_stat_distri_and_rbar$stat_distri
 q <- c(t(stat_distri) %*% res_LTnominal_prices$all_LT_rth[,10])
 D <- 6

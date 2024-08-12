@@ -599,4 +599,137 @@ run_strategy <- function(Model_solved,maxH,
 }
 
 
+prepare_returns_yds <- function(Model,maxH){
+  
+  nb_m <- dim(Model$Omega)[1]
+  
+  # Compute (LT) nominal bond prices:
+  Model_nominal <- Model
+  Model_nominal$kappa_pi <- 0
+  Model_nominal$kappa_y  <- 0
+  res_LTnominal_prices <- compute_LTRF_bond_prices(Model_nominal,maxH=maxH)
+  
+  # Compute (LT) real bond prices:
+  Model_TIPS <- Model
+  Model_TIPS$kappa_pi <- 1
+  Model_TIPS$kappa_y  <- 0
+  res_LTTIPS_prices <- compute_LTRF_bond_prices(Model_TIPS,maxH=maxH)
+  
+  # Compute (LT) TIPS bond prices:
+  Model_GDPLB <- Model
+  Model_GDPLB$kappa_pi <- 1
+  Model_GDPLB$kappa_y  <- 1
+  res_LTGDPLB_prices   <- compute_LTRF_bond_prices(Model_GDPLB,maxH=maxH)
+  
+  stat_distri <- compute_stat_distri(Model)
+  
+  nominal_yds <- res_LTnominal_prices$all_LT_rth
+  TIPS_yds    <- res_LTTIPS_prices$all_LT_rth
+  GDPLB_yds   <- res_LTGDPLB_prices$all_LT_rth
+  
+  avg_nominal_yds <- t(stat_distri) %*% nominal_yds
+  avg_TIPS_yds    <- t(stat_distri) %*% TIPS_yds
+  avg_GDPLB_yds   <- t(stat_distri) %*% GDPLB_yds
+  
+  avg_nominal_returns <- t(stat_distri) %*% res_LTnominal_prices$all_LT_ExpReturn_th
+  avg_TIPS_returns    <- t(stat_distri) %*% res_LTTIPS_prices$all_LT_ExpReturn_th
+  avg_GDPLB_returns   <- t(stat_distri) %*% res_LTGDPLB_prices$all_LT_ExpReturn_th
+  
+  Var_nominal_yds <- t(stat_distri) %*% nominal_yds^2 - avg_nominal_yds^2
+  Var_TIPS_yds    <- t(stat_distri) %*% TIPS_yds^2    - avg_TIPS_yds^2
+  Var_GDPLB_yds   <- t(stat_distri) %*% GDPLB_yds^2   - avg_GDPLB_yds^2
+  Std_nominal_yds <- sqrt(Var_nominal_yds)
+  Std_TIPS_yds    <- sqrt(Var_TIPS_yds)
+  Std_GDPLB_yds   <- sqrt(Var_GDPLB_yds)
+
+  exp_log_nominal_returns <- log(res_LTnominal_prices$all_LT_ExpReturn_th)
+  exp_log_TIPS_returns    <- log(res_LTTIPS_prices$all_LT_ExpReturn_th)
+  exp_log_GDPLB_returns   <- log(res_LTGDPLB_prices$all_LT_ExpReturn_th)
+  
+  exp_annual_nominal_returns <- exp_log_nominal_returns/t(matrix(1:maxH,maxH,nb_m))
+  exp_annual_TIPS_returns    <- exp_log_TIPS_returns/t(matrix(1:maxH,maxH,nb_m))
+  exp_annual_GDPLB_returns   <- exp_log_GDPLB_returns/t(matrix(1:maxH,maxH,nb_m))
+  
+  avg_annual_nominal_returns <- c(t(stat_distri) %*% exp_annual_nominal_returns)
+  avg_annual_TIPS_returns    <- c(t(stat_distri) %*% exp_annual_TIPS_returns)
+  avg_annual_GDPLB_returns   <- c(t(stat_distri) %*% exp_annual_GDPLB_returns)
+  
+  Var_annual_nominal_returns <- t(stat_distri) %*% exp_annual_nominal_returns^2 - avg_annual_nominal_returns^2
+  Var_annual_TIPS_returns    <- t(stat_distri) %*% exp_annual_TIPS_returns^2    - avg_annual_TIPS_returns^2
+  Var_annual_GDPLB_returns   <- t(stat_distri) %*% exp_annual_GDPLB_returns^2   - avg_annual_GDPLB_returns^2
+  Std_annual_nominal_returns <- sqrt(Var_annual_nominal_returns)
+  Std_annual_TIPS_returns    <- sqrt(Var_annual_TIPS_returns)
+  Std_annual_GDPLB_returns   <- sqrt(Var_annual_GDPLB_returns)
+  
+  return(list(res_LTnominal_prices = res_LTnominal_prices,
+              res_LTTIPS_prices = res_LTTIPS_prices,
+              res_LTGDPLB_prices = res_LTGDPLB_prices,
+              nominal_yds = nominal_yds,
+              TIPS_yds = TIPS_yds,
+              GDPLB_yds = GDPLB_yds,
+              avg_nominal_yds = avg_nominal_yds,
+              avg_TIPS_yds = avg_TIPS_yds,
+              avg_GDPLB_yds = avg_GDPLB_yds,
+              avg_nominal_returns = avg_nominal_returns,
+              avg_TIPS_returns = avg_TIPS_returns,
+              avg_GDPLB_returns = avg_GDPLB_returns,
+              Std_nominal_yds = Std_nominal_yds,
+              Std_TIPS_yds = Std_TIPS_yds,
+              Std_GDPLB_yds = Std_GDPLB_yds,
+              exp_annual_nominal_returns = exp_annual_nominal_returns,
+              exp_annual_TIPS_returns = exp_annual_TIPS_returns,
+              exp_annual_GDPLB_returns = exp_annual_GDPLB_returns,
+              avg_annual_nominal_returns = avg_annual_nominal_returns,
+              avg_annual_TIPS_returns = avg_annual_TIPS_returns,
+              avg_annual_GDPLB_returns = avg_annual_GDPLB_returns,
+              Std_annual_nominal_returns = Std_annual_nominal_returns,
+              Std_annual_TIPS_returns = Std_annual_TIPS_returns,
+              Std_annual_GDPLB_returns = Std_annual_GDPLB_returns
+              ))
+}
+
+
+
+prepare_and_solve_3 <- function(Model,
+                                all_d,all_rr,all_eps,proba_eps){
+  # Compute average growth and inflation:
+  stat_distri <- compute_stat_distri(Model)
+  mean_pi <- c(t(stat_distri) %*% Model$mu_pi)
+  mean_y  <- c(t(stat_distri) %*% Model$mu_y)
+  
+  # Issuance of nominal bonds: ---------------------------------------------------
+  Model_nominal <- Model
+  Model_nominal$kappa_pi <- 0
+  Model_nominal$kappa_y  <- 0
+  # Correct chi:
+  Model_nominal$chi <- chi / exp(Model_nominal$kappa_pi*mean_pi + Model_nominal$kappa_y*mean_y)
+  print("--- Working on nominal-bond model ---")
+  Model_solved_nominal <- solve_ToyModel(all_d,all_rr,all_eps,proba_eps,
+                                         Model_nominal,nb_iter = nb_iter)
+  
+  # Issuance of TIPS: ------------------------------------------------------------
+  Model_TIPS <- Model
+  Model_TIPS$kappa_pi <- 1
+  Model_TIPS$kappa_y  <- 0
+  # Correct chi:
+  Model_TIPS$chi <- chi / exp(Model_TIPS$kappa_pi*mean_pi + Model_TIPS$kappa_y*mean_y)
+  print("--- Working on TIPS model ---")
+  Model_solved_TIPS <- solve_ToyModel(all_d,all_rr,all_eps,proba_eps,
+                                      Model_TIPS,nb_iter = nb_iter)
+  
+  # Issuance of GDP-LBs: ---------------------------------------------------------
+  Model_GDPLB <- Model
+  Model_GDPLB$kappa_pi <- 1
+  Model_GDPLB$kappa_y  <- 1
+  # Correct chi:
+  Model_GDPLB$chi <- chi / exp(Model_GDPLB$kappa_pi*mean_pi + Model_GDPLB$kappa_y*mean_y)
+  print("--- Working on GDPLB model ---")
+  Model_solved_GDPLB <- solve_ToyModel(all_d,all_rr,all_eps,proba_eps,
+                                       Model_GDPLB,nb_iter = nb_iter)
+  
+  return(list(Model_solved_nominal = Model_solved_nominal,
+              Model_solved_TIPS    = Model_solved_TIPS,
+              Model_solved_GDPLB   = Model_solved_GDPLB))
+}
+
 

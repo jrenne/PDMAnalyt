@@ -58,13 +58,13 @@ targets <- list(
 #   target_avg_Dy = .015)
 
 # Set initial Model ------------------------------------------------------------
-gamma     <- 5       # risk aversion
-delta     <- .99     # preference for present
-beta      <- .3      # sensitivity of surplus to debt level
-d_star    <- .6      # targeted debt level
-sigma_eps <- .04     # std dev of surplus shocks
-alpha     <- 1     # elasticity of default proba
-s_star    <- .05     # max surplus
+gamma     <- 5      # risk aversion
+delta     <- .99    # preference for present
+beta      <- .3     # sensitivity of surplus to debt level
+d_star    <- .6     # targeted debt level
+sigma_eps <- .04    # std dev of surplus shocks
+alpha     <- 1      # elasticity of default proba
+s_star    <- .06    # max surplus
 nu_y      <- -.2 * 0
 nu_pi     <- .05 * 0
 
@@ -138,6 +138,8 @@ Model <- make_model(param)
 #save(Model,file="results/res_882024.Rdat")
 #save(Model,file="results/res_11082024.Rdat")
 #save(Model,file="results/res_12082024.Rdat")
+
+#load(file="results/res_12082024.Rdat")
 
 source("make_chart_fit.R")
 
