@@ -383,10 +383,15 @@ compute_distance <- function(param,targets){
                             .25*(avg_nom_yds[10] - targets$target_10_nom)^2 +
                             (avg_real_yds[10] - avg_real_yds[2] - targets$target_slop_rea)^2 +
                             .25*(avg_real_yds[10] - targets$target_10_rea)^2 + 
-                            .0*(avg_Pi - targets$target_avg_Pi)^2 +
-                            .0*(avg_Dy - targets$target_avg_Dy)^2 +
+                            .1*(avg_Pi - targets$target_avg_Pi)^2 +
+                            .1*(avg_Dy - targets$target_avg_Dy)^2 +
                             .0 * (Std_nom_yds[10]  - targets$target_std_10_nom)^2 +
                             .2 * (Std_real_yds[10] - targets$target_std_10_rea)^2)
+  
+  # Add penalty when yield curves are not monotonously increasing:
+  distance <- distance + 1000000*(avg_nom_yds[2]<avg_nom_yds[1])*(avg_nom_yds[1]-avg_nom_yds[2])
+  distance <- distance + 1000000*(avg_real_yds[2]<avg_real_yds[1])*(avg_real_yds[1]-avg_real_yds[2])
+  
   return(distance)
 }
 

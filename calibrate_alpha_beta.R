@@ -2,6 +2,9 @@
 # Calibration of beta
 # ==============================================================================
 
+nb_grid <- 23
+source("make_grids.R")
+
 Model$s_star <- .05
 candidate_alpha_values  <- c(.1,.3,.5)
 candidate_beta_values   <- c(.1,.2,.3)
