@@ -16,6 +16,8 @@ for(i in 1:dim(M)[1]){
   lines(fitted[,i],col="red")
 }
 
+nb_m <- dim(Model$Omega)[1] # number of macro regimes
+
 
 RES <- prepare_returns_yds(Model,maxH)
 

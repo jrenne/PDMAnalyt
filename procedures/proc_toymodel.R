@@ -310,8 +310,8 @@ inv_logist <- function(x){
 # }
 
 
-make_model <- function(param){
-  Model0 <- Model
+make_model <- function(param,Model_ini){
+  Model0 <- Model_ini
   nb_m <- dim(Model$Omega)[1]
   Model0$mu_pi <- matrix(min_Pi + (max_Pi - min_Pi) * logist(param[1:nb_m]),ncol=1)
   Model0$mu_y  <- matrix(min_Dy + (max_Dy - min_Dy) * logist(param[(nb_m+1):(2*nb_m)]),ncol=1)
@@ -351,8 +351,8 @@ model2param <- function(Model){
   return(param)
 }
 
-compute_distance <- function(param,targets){
-  Model   <- make_model(param)
+compute_distance <- function(param,targets,Model_ini){
+  Model   <- make_model(param,Model_ini)
   
   # Nominal yields:
   Model_nominal <- Model
@@ -405,10 +405,10 @@ make_StateSpace <- function(Model){
   
   nb_m <- dim(Model$Omega)[1]
   
-  N <- rbind(rep(std_Pi,nb_m),
-             rep(std_Dy,nb_m),
-             rep(std_nom_yd,nb_m),
-             rep(std_nom_yd,nb_m))
+  N <- rbind(rep(Model$std_Pi,nb_m),
+             rep(Model$std_Dy,nb_m),
+             rep(Model$std_nom_yd,nb_m),
+             rep(Model$std_nom_yd,nb_m))
   M <- rbind(c(Model$mu_pi),
              c(Model$mu_y),
              res_LTnominal_prices$all_LT_rth[,1],
@@ -423,9 +423,9 @@ make_StateSpace <- function(Model){
   return(list(M=M,N=N,F=F,dates=dates))
 }
 
-compute_loglik <- function(param){
+compute_loglik <- function(param,Model_ini){
   
-  Model <- make_model(param)
+  Model <- make_model(param,Model_ini)
   
   res_SS <- make_StateSpace(Model)
   M <- res_SS$M
@@ -443,10 +443,10 @@ compute_loglik <- function(param){
 }
 
 
-compute_total_distance <- function(param,targets){
+compute_total_distance <- function(param,targets,Model_ini){
   
-  loss1 <- compute_distance(param,targets)
-  loss2 <- compute_loglik(param)
+  loss1 <- compute_distance(param,targets,Model_ini)
+  loss2 <- compute_loglik(param,Model_ini)
   
   return(loss1 + loss2)
 }
@@ -587,15 +587,17 @@ run_strategy <- function(Model_solved,maxH,
   mean_rr   <- sum(Model_solved$all_rr * distri_rr)
   stdv_rr   <- sqrt(sum(Model_solved$all_rr^2 * distri_rr) - mean_rr^2)
   
+  # average PDs:
+  avg_PD <- t(p) %*% PD
+  
   return(list(p=p,
               res_prices = res_prices,
               res_prices_RF = res_prices_RF,
-              PD = PD,
+              PD = PD, avg_PD = avg_PD,
               res_LTprices = res_LTprices, avgLT_ExpReturns = avgLT_ExpReturns,
               distri_d=distri_d,mean_d=mean_d,stdv_d=stdv_d,
               distri_Delta_d=distri_Delta_d,mean_Delta_d=mean_Delta_d,stdv_Delta_d=stdv_Delta_d,
-              distri_rr=distri_rr,mean_rr=mean_rr,stdv_rr=stdv_rr
-  ))
+              distri_rr=distri_rr,mean_rr=mean_rr,stdv_rr=stdv_rr))
 }
 
 

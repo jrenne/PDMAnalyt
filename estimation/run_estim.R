@@ -1,7 +1,4 @@
 
-
-load(file="Data/data.Rda")
-
 start_year <- 1970
 
 maxH = 10 # for charts
@@ -17,11 +14,6 @@ nb_m <- 5
 maxit.nlminb <- 100
 maxit.NlMd   <- 5000
 nb_loops     <- 2
-
-# Standard deviations of measurement errors (for Hamilton filter):
-std_Pi <- .01
-std_Dy <- .01
-std_nom_yd <- .008
 
 min_Pi <- -.02
 max_Pi <- +.20
@@ -58,15 +50,19 @@ targets <- list(
 #   target_avg_Dy = .015)
 
 # Set initial Model ------------------------------------------------------------
-gamma     <- 5      # risk aversion
-delta     <- .99    # preference for present
-beta      <- .3     # sensitivity of surplus to debt level
-d_star    <- .6     # targeted debt level
-sigma_eps <- .04    # std dev of surplus shocks
-alpha     <- 1      # elasticity of default proba
-s_star    <- .06    # max surplus
-nu_y      <- -.2 * 0
-nu_pi     <- .05 * 0
+gamma      <- 5      # risk aversion
+delta      <- .99    # preference for present
+beta       <- .3     # sensitivity of surplus to debt level
+d_star     <- .6     # targeted debt level
+sigma_eps  <- .04    # std dev of surplus shocks
+alpha      <- 1      # elasticity of default proba
+s_star     <- .06    # max surplus
+std_Pi     <- .01    # standard deviation of inflation measurement errors (for Hamilton filter)
+std_Dy     <- .01    # standard deviation of GDP growth measurement errors (for Hamilton filter)
+std_nom_yd <- .008   # standard deviation of yield measurement errors (for Hamilton filter)
+nu_y       <- -.2 * 0
+nu_pi      <- .05 * 0
+
 
 # Perpetuity specification:
 kappa_pi <- 0 # Inflation indexation (1 = TIPS)
@@ -88,25 +84,28 @@ mu_pi <- matrix(c(rep(mean(DATA$pi,na.rm=TRUE),nb_m-1),min(DATA$pi,na.rm = TRUE)
 
 mu_eta <- .5 * mu_y
 
-Model <- list(gamma=1.2,
-              delta     = delta,
-              chi       = chi,
-              beta      = beta,
-              d_star    = d_star,
-              sigma_eps = sigma_eps,
-              alpha     = alpha,
-              s_star    = s_star,
-              RR        = RR,
-              Omega     = Omega,
-              mu_pi     = mu_pi,
-              mu_y      = mu_y,
-              mu_eta    = mu_eta,
-              nu_pi     = nu_pi,
-              nu_y      = nu_y,
-              kappa_pi  = kappa_pi,
-              kappa_y   = kappa_y)
+Model_ini <- list(gamma=1.2,
+                  delta     = delta,
+                  chi       = chi,
+                  beta      = beta,
+                  d_star    = d_star,
+                  sigma_eps = sigma_eps,
+                  alpha     = alpha,
+                  s_star    = s_star,
+                  RR        = RR,
+                  Omega     = Omega,
+                  mu_pi     = mu_pi,
+                  mu_y      = mu_y,
+                  mu_eta    = mu_eta,
+                  nu_pi     = nu_pi,
+                  nu_y      = nu_y,
+                  kappa_pi  = kappa_pi,
+                  kappa_y   = kappa_y,
+                  std_Pi    = std_Pi,
+                  std_Dy    = std_Dy,
+                  std_nom_yd = std_nom_yd)
 
-param <- model2param(Model)
+param <- model2param(Model_ini)
 param <- param + .6*rnorm(param)
 
 #param <- param + .1*rnorm(param)
@@ -120,6 +119,7 @@ for(ii in 1:nb_loops){
                         #compute_loglik,
                         compute_total_distance,
                         targets = targets,
+                        Model_ini = Model_ini,
                         method = algo,
                         control=
                           list(trace=1,
@@ -130,9 +130,9 @@ for(ii in 1:nb_loops){
   }
 }
 
-compute_total_distance(param,targets)
+compute_total_distance(param,targets,Model_ini)
 
-Model <- make_model(param)
+Model <- make_model(param,Model_ini)
 
 #save(Model,file="results/res_772024.Rdat")
 #save(Model,file="results/res_882024.Rdat")

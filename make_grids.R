@@ -1,10 +1,11 @@
 
 # Determine debt's grid:
-center_d <- d_star
-disp_d   <- d_star/3
-quantiles <- seq(.1/nb_grid,1-.1/nb_grid,length.out = nb_grid)
-all_d <- d_star + disp_d * qnorm(quantiles)
-all_d <- matrix(all_d,ncol=1)
+
+# center_d <- Model$d_star
+# disp_d   <- Model$d_star/3
+# quantiles <- seq(.1/nb_grid,1-.1/nb_grid,length.out = nb_grid)
+# all_d <- d_star + disp_d * qnorm(quantiles)
+# all_d <- matrix(all_d,ncol=1)
 
 all_d <- matrix(seq(0,1.5,length.out=nb_grid),ncol=1)
 
@@ -27,7 +28,7 @@ phi_a <- dnorm(aa)
 phi_b <- dnorm(bb)
 Phi_a <- pnorm(aa)
 Phi_b <- pnorm(bb)
-all_eps <- sigma_eps * (phi_a - phi_b)/(Phi_b - Phi_a)
+all_eps <- Model$sigma_eps * (phi_a - phi_b)/(Phi_b - Phi_a)
 all_eps <- matrix(all_eps,ncol=1)
 proba_eps <- matrix(pnorm(bb) - pnorm(aa),ncol=1)
 

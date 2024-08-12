@@ -12,7 +12,7 @@ rm(list = ls())
 # Number of cores to be used (relevant only for estimation):
 number.of.cores <- 8
 
-indic_estim     <- 1
+indic_estim     <- 0
 indic_load_data <- 0
 
 # # Load packages:
@@ -39,6 +39,13 @@ source("procedures/proc_toymodel.R")
 sourceCpp("procedures/pricing_cpp.cpp") # load C++ functions
 
 # ---- Model calibration -------------------------------------------------------
+# Standard deviations of measurement errors (for Hamilton filter):
+std_Pi <- .01
+std_Dy <- .01
+std_nom_yd <- .008
+
+load(file="Data/data.Rda")
+
 if(indic_estim == 1){
   if(indic_load_data==1){
     print(" --- Loading data ---")
@@ -50,11 +57,6 @@ if(indic_estim == 1){
   start_year <- "1968"
   source("estimation/run_estim.R")
 }else{
-  load(file="results/res_11082024.Rdat")
+  load(file="results/res_12082024.Rdat")
 }
-
-# ---- Test PDM framework ------------------------------------------------------
-nb_iter <- 10 # number of iterations used to solve for perpetuity yields
-maxH    <- 20
-source("make_grids.R")
 
