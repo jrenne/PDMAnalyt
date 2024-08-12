@@ -7,7 +7,7 @@ source("make_grids.R")
 #Model$nu_y <- -.4
 
 chi <- Model$chi
-#chi <- .9
+chi <- .95
 
 stat_distri <- compute_stat_distri(Model)
 
@@ -19,10 +19,10 @@ nb_iter <- 30 # used to solve the model
 # ================================
 # ================================
 
-mean_pi <- .03
-mean_y  <- .015
-Model$mu_pi <- matrix(mean_pi,length(Model$mu_pi))
-Model$mu_y  <- matrix(mean_y, length(Model$mu_pi))
+# mean_pi <- .03
+# mean_y  <- .015
+# Model$mu_pi <- matrix(mean_pi,length(Model$mu_pi))
+# Model$mu_y  <- matrix(mean_y, length(Model$mu_pi))
 
 
 Model$mu_eta <- 1 * Model$mu_y
@@ -40,10 +40,11 @@ Model$kappa_pi <- 0
 Model$kappa_y  <- 0
 res_stat_distri_and_rbar <- compute_stat_distri_and_rbar(Model)
 r_bar  <- res_stat_distri_and_rbar$r_bar
-max_rr <- (r_bar + .1) * Model$d_star
+
+max_rr <- max((r_bar + .1) * Model$d_star,.15)
 all_rr <- seq(0,max_rr,length.out = nb_grid)
 all_rr <- matrix(all_rr,ncol=1)
-#Model$chi <- chi / exp((Model$kappa_pi - 1)*mean_pi + (Model$kappa_y - 1)*mean_y)
+
 Model$chi <- chi / exp(Model$kappa_pi*mean_pi + Model$kappa_y*mean_y)
 #Model$chi <- chi
 res0_nominal <- solve_ToyModel(all_d,all_rr,all_eps,proba_eps,
@@ -96,11 +97,12 @@ plot(all_d,distri_d,type="l")
 Model$kappa_pi <- 1
 Model$kappa_y  <- 0
 res_stat_distri_and_rbar <- compute_stat_distri_and_rbar(Model)
-r_bar  <- res_stat_distri_and_rbar$r_bar
-max_rr <- (r_bar + .1) * Model$d_star
-all_rr <- seq(0,max_rr,length.out = nb_grid)
-all_rr <- matrix(all_rr,ncol=1)
-#Model$chi <- chi / exp((Model$kappa_pi - 1)*mean_pi + (Model$kappa_y - 1)*mean_y)
+
+# r_bar  <- res_stat_distri_and_rbar$r_bar
+# max_rr <- (r_bar + .1) * Model$d_star
+# all_rr <- seq(0,max_rr,length.out = nb_grid)
+# all_rr <- matrix(all_rr,ncol=1)
+
 Model$chi <- chi / exp(Model$kappa_pi*mean_pi + Model$kappa_y*mean_y)
 #Model$chi <- chi
 res0_TIPS <- solve_ToyModel(all_d,all_rr,all_eps,proba_eps,
@@ -118,11 +120,12 @@ PD_TIPS <- compute_proba_def(maxH=maxH,
 Model$kappa_pi <- 1
 Model$kappa_y  <- 1
 res_stat_distri_and_rbar <- compute_stat_distri_and_rbar(Model)
-r_bar  <- res_stat_distri_and_rbar$r_bar
-max_rr <- (r_bar + .1) * Model$d_star
-all_rr <- seq(0,max_rr,length.out = nb_grid)
-all_rr <- matrix(all_rr,ncol=1)
-#Model$chi <- chi / exp((Model$kappa_pi - 1)*mean_pi + (Model$kappa_y - 1)*mean_y)
+
+# r_bar  <- res_stat_distri_and_rbar$r_bar
+# max_rr <- (r_bar + .1) * Model$d_star
+# all_rr <- seq(0,max_rr,length.out = nb_grid)
+# all_rr <- matrix(all_rr,ncol=1)
+
 Model$chi <- chi / exp(Model$kappa_pi*mean_pi + Model$kappa_y*mean_y)
 #Model$chi <- chi
 res0_GDPLB <- solve_ToyModel(all_d,all_rr,all_eps,proba_eps,
@@ -142,7 +145,7 @@ par(mfrow=c(1,2))
 # v <- which(all_d==max(all_d))
 # v <- which(all_d==d_star)
 # v <- which(all_d==min(all_d))
-# v <- which.min(abs(all_d - .7))
+# v <- which.min(abs(all_d - .4))
 # Ts <- which((res0_nominal$d==all_d[v])&(res0_nominal$d_1==min(all_d))&(res0_nominal$rr==0))
 # plot(c(t(res0_nominal$stat_distri) %*% PD_nominal[Ts,]))
 # lines(c(t(res0_TIPS$stat_distri)   %*% PD_TIPS[Ts,]),col="blue")
@@ -151,6 +154,26 @@ par(mfrow=c(1,2))
 plot(c(t(p_nominal) %*% PD_nominal))
 lines(c(t(p_TIPS)   %*% PD_TIPS),col="blue")
 lines(c(t(p_GDPLB)  %*% PD_GDPLB),col="red")
+
+# Variations of Debt-to-GDP ratio:
+all_Delta_d_values <- as.numeric(levels(as.factor(res0_nominal$d - res0_nominal$d_1)))
+all_Delta_d_values <- matrix(all_Delta_d_values,ncol=1)
+
+distri_Delta_d_nominal <- compute_distri_x(all_Delta_d_values,res0_nominal$d - res0_nominal$d_1,p_nominal)
+distri_Delta_d_TIPS    <- compute_distri_x(all_Delta_d_values,res0_TIPS$d    - res0_TIPS$d_1,p_TIPS)
+distri_Delta_d_GDPLB   <- compute_distri_x(all_Delta_d_values,res0_GDPLB$d   - res0_GDPLB$d_1,p_GDPLB)
+
+mean_Delta_d_nominal <- sum(all_Delta_d_values * distri_Delta_d_nominal)
+mean_Delta_d_TIPS    <- sum(all_Delta_d_values * distri_Delta_d_TIPS)
+mean_Delta_d_GDPLB   <- sum(all_Delta_d_values * distri_Delta_d_GDPLB)
+
+stdv_Delta_d_nominal <- sqrt(sum(all_Delta_d_values^2 * distri_Delta_d_nominal) -
+                               mean_Delta_d_nominal^2)
+stdv_Delta_d_TIPS    <- sqrt(sum(all_Delta_d_values^2 * distri_Delta_d_TIPS) -
+                               mean_Delta_d_TIPS^2)
+stdv_Delta_d_GDPLB   <- sqrt(sum(all_Delta_d_values^2 * distri_Delta_d_GDPLB) -
+                               mean_Delta_d_GDPLB^2)
+
 
 
 # plot(c(t(p)  %*% PD_nominal))

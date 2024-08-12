@@ -903,6 +903,9 @@ Rcpp::List solve_ToyModel(const Eigen::MatrixXd all_d,
   Eigen::MatrixXd all_zeta_t   = ((mult(all_Pi_t,  kappa_pi - 1) + mult(all_Dy_t,  kappa_y - 1)).array()).exp() ;
   Eigen::MatrixXd all_zeta_tp1 = ((mult(all_Pi_tp1,kappa_pi - 1) + mult(all_Dy_tp1,kappa_y - 1)).array()).exp() ;
   
+  Eigen::MatrixXd all_zeta_bar_t   = ((mult(all_Pi_t,  - 1) + mult(all_Dy_t,  - 1)).array()).exp() ;
+  Eigen::MatrixXd all_zeta_bar_tp1 = ((mult(all_Pi_tp1,- 1) + mult(all_Dy_tp1,- 1)).array()).exp() ;
+  
   Eigen::MatrixXd all_eta_tp1 = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
   all_eta_tp1 = all_eps_tp1 +
     vec_1_x * kronecker_cpp(mu_eta.transpose(), vec_1_eps.transpose()) - all_s_m_t ;
@@ -919,16 +922,23 @@ Rcpp::List solve_ToyModel(const Eigen::MatrixXd all_d,
       
       all_q_t = q * vec_1_m_eps.transpose() ;
       
-      all_rr_tp1 = all_q_t.array() * all_zeta_tp1.array() *
-        (all_d_t - mult(all_zeta_t.array() * all_d_t_1.array(),chi)).array() +
-        mult(all_zeta_tp1.array() * all_rr_t.array(),chi).array() ;
-      
-      all_d_tp1  = all_zeta_tp1.array() * all_d_t.array() -
-        mult(add(all_d_t, - d_star),beta).array() -
-        all_eta_tp1.array() + all_rr_tp1.array() ;
-      
+      // all_rr_tp1 = all_q_t.array() * all_zeta_tp1.array() *
+      //   (all_d_t - mult(all_zeta_t.array() * all_d_t_1.array(),chi)).array() +
+      //   mult(all_zeta_tp1.array() * all_rr_t.array(),chi).array() ;
+      // 
       // all_d_tp1  = all_zeta_tp1.array() * all_d_t.array() -
-      //   Matrix_beta.array() - all_eta_tp1.array() + all_rr_tp1.array() ;
+      //   mult(add(all_d_t, - d_star),beta).array() -
+      //   all_eta_tp1.array() + all_rr_tp1.array() ;
+      
+      all_rr_tp1 = (all_zeta_tp1 - all_zeta_bar_tp1).array() * all_d_t.array() +
+        all_q_t.array() * all_zeta_tp1.array() *
+        (all_d_t - mult(all_zeta_t.array() * all_d_t_1.array(),chi)).array() +
+        all_zeta_tp1.array() * 
+        mult(all_rr_t.array() - (all_zeta_t - all_zeta_bar_t).array() * all_d_t_1.array(),chi).array() ;
+      
+      all_d_tp1  = all_zeta_bar_tp1.array() * all_d_t.array() -
+        mult(add(all_d_t, - d_star),beta).array() - all_eta_tp1.array() +
+        all_rr_tp1.array() ;
       
       indicators_d_tp1  = find_closest_in_vec(all_d_tp1,all_d) ;
       indicators_rr_tp1 = find_closest_in_vec(all_rr_tp1,all_rr) ;

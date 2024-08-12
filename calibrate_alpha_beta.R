@@ -36,8 +36,8 @@ Model$chi <- 1 + q - 1/D
 # indic_rr <- which.min(abs(all_rr - rr))
 
 # Define targets:
-Targets <- list(spread_in_bps = 50,
-                mean_d_in_percent = 70)
+Targets <- list(spread_in_bps = 20,
+                mean_d_in_percent = 80)
 
 # Consider a model without default risk (to determine debt2GDP distribuiton):
 Model$beta <- .2
