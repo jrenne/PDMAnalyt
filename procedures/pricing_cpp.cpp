@@ -994,16 +994,17 @@ Rcpp::List solve_ToyModel(const Eigen::MatrixXd all_d,
                       Named("Dy") = Dy,
                       Named("q_chge") = q_chge,
                       Named("indicators_x") = indicators_x,
-                      Named("all_f_tp1") = all_f_tp1,
                       Named("mu_f0") = mu_f0,
                       Named("mu_f1") = mu_f1,
                       Named("nu")   = nu,
                       Named("all_proba_def") = all_proba_def,
                       Named("Probas") = Probas,
                       Named("stat_distri") = stat_distri,
-                      Named("OnepChiPstar") = OnepChiPstar,
                       Named("Pstar") = Pstar,
-                      Named("rstar") = rstar
+                      Named("rstar") = rstar,
+                      Named("Model") = Model,
+                      Named("all_d") = all_d,
+                      Named("all_rr") = all_rr
   ) ;
 }
 

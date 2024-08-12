@@ -7,7 +7,7 @@ candidate_alpha_values  <- c(.1,.3,.5)
 candidate_beta_values   <- c(.1,.2,.3)
 candidate_d_star_values <- c(.4,.6,.8)
 
-Model$RR <- .4
+Model$RR <- .5
 Model$mu_eta <- 1 * Model$mu_y
 
 # Issuance of nominal bonds:

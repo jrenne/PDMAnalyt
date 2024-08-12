@@ -1,5 +1,5 @@
 
-solve_ToyModel_notRcpp <- function(all_d,all_rr,all_eps,proba_def,
+solve_ToyModel_notRcpp <- function(all_d,all_rr,all_eps,proba_eps,
                                    Model,nb_iter){
   
   nb_grid_d  <- dim(all_d)[1]
@@ -131,7 +131,7 @@ solve_ToyModel_notRcpp <- function(all_d,all_rr,all_eps,proba_def,
                                all_proba_def * (exp(nu)*RR*all_OnepChiPstar -
                                                   (1 + all_q_tp1)/(1 + all_q_tp1 - chi)))
       q <- chi - 1 + 1/apply(E * Probas,1,sum)
-
+      
       # Computation of risk free rate (RR=1):
       all_q0_tp1 <- matrix(q0[c(indicators_x)],nb_states,nb_eps*nb_m)
       E0 <- exp(all_f_tp1) * ((1 + all_q0_tp1)/(1 + all_q0_tp1 - chi) +
@@ -169,9 +169,11 @@ solve_ToyModel_notRcpp <- function(all_d,all_rr,all_eps,proba_def,
     M1rst = M1rst,
     Mbetw = Mbetw,
     Mlast = Mlast,
-    OnepChiPstar = OnepChiPstar,
     Pstar = Pstar,
-    rstar = rstar))
+    rstar = rstar,
+    Model = Model,
+    all_d = all_d,
+    all_rr = all_rr))
 }
 
 compute_LTRF_bond_prices_notRcpp <- function(Model,
@@ -366,7 +368,7 @@ compute_distance <- function(param,targets){
   Model_real$kappa_y  <- 0
   res_LTreal_prices <- compute_LTRF_bond_prices(Model_real,maxH=10)
   avg_real_yds <- c(t(stat_distri) %*% res_LTreal_prices$all_LT_rth)
-
+  
   # Average inflation and GDP growth:
   avg_Pi <- sum(stat_distri * Model$mu_pi)
   avg_Dy <- sum(stat_distri * Model$mu_Dy)
@@ -526,4 +528,70 @@ KH_filter_notRcpp <- function(F, M, N, Omega){
               loglik_vec = loglik_vec,
               loglik = loglik))
 }
+
+
+run_strategy <- function(Model_solved,maxH,
+                         nb_iter4probas = 1000){
+  
+  # Compute bond prices (no default):
+  res_LTprices <- compute_LTRF_bond_prices(Model_solved$Model,maxH)
+  
+  # Compute average expected returns (no default):
+  avgLT_ExpReturns  <- c(t(Model_solved$stat_distri) %*% res_LTprices$all_LT_ExpReturn_th)
+  
+  # Compute probabilities of default:
+  PD <- compute_proba_def(maxH=maxH,
+                          indicators_x  = Model_solved$indicators_x,
+                          all_proba_def = Model_solved$all_proba_def,
+                          Probas        = Model_solved$Probas)
+  
+  # Compute bond prices:
+  res_prices <- compute_bond_prices(Model_solved$Model, maxH,
+                                    Model_solved$indicators_x,
+                                    Model_solved$all_proba_def,
+                                    Model_solved$Probas)
+  
+  # Compute risk-free yields:
+  Model_RF    <- Model_solved$Model
+  Model_RF$RR <- 1
+  res_prices_RF <- compute_bond_prices(Model_RF, maxH,
+                                       Model_solved$indicators_x,
+                                       Model_solved$all_proba_def,
+                                       Model_solved$Probas)
+  
+  # Compute unconditional distribution:
+  p <- compute_uncond_distri(Model_solved$indicators_x,Model_solved$Probas,nb_iter4probas)
+  
+  # Compute cost and risk measures: --------------------------------------------
+  
+  # Debt-to-GDP:
+  distri_d <- compute_distri_x(Model_solved$all_d,Model_solved$d,p)
+  mean_d   <- sum(Model_solved$all_d * distri_d)
+  stdv_d   <- sqrt(sum(Model_solved$all_d^2 * distri_d) - mean_d^2)
+  
+  # Changes in debt-to-GDP:
+  all_Delta_d <- as.numeric(levels(as.factor(Model_solved$d - Model_solved$d_1)))
+  all_Delta_d <- matrix(all_Delta_d,ncol=1)
+  distri_Delta_d <- compute_distri_x(all_Delta_d,
+                                     Model_solved$d - Model_solved$d_1,p)
+  mean_Delta_d <- sum(all_Delta_d * distri_Delta_d)
+  stdv_Delta_d <- sqrt(sum(all_Delta_d^2 * distri_Delta_d) - mean_Delta_d^2)
+  
+  # Debt service:
+  distri_rr <- compute_distri_x(Model_solved$all_rr,Model_solved$rr,p)
+  mean_rr   <- sum(Model_solved$all_rr * distri_rr)
+  stdv_rr   <- sqrt(sum(Model_solved$all_rr^2 * distri_rr) - mean_rr^2)
+  
+  return(list(p=p,
+              res_prices = res_prices,
+              res_prices_RF = res_prices_RF,
+              PD = PD,
+              res_LTprices = res_LTprices, avgLT_ExpReturns = avgLT_ExpReturns,
+              distri_d=distri_d,mean_d=mean_d,stdv_d=stdv_d,
+              distri_Delta_d=distri_Delta_d,mean_Delta_d=mean_Delta_d,stdv_Delta_d=stdv_Delta_d,
+              distri_rr=distri_rr,mean_rr=mean_rr,stdv_rr=stdv_rr
+  ))
+}
+
+
 
