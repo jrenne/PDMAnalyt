@@ -1,18 +1,20 @@
 
 start_year <- 1970
+#start_year <- 2000
 
 maxH = 10 # for charts
 
 # Resize dataset:
 indic_fst <- which(format(DATA$date,"%Y")==start_year)
 DATA <- DATA[indic_fst:dim(DATA)[1],]
+#DATA$surpl_1 <- c(DATA$surpl[2:length(DATA$surpl)],NaN)
 
 # Number of regimes:
 nb_m <- 5
 
 # Optimization set up:
-maxit.nlminb <- 100
-maxit.NlMd   <- 5000
+maxit.nlminb <- 80
+maxit.NlMd   <- 4000
 nb_loops     <- 2
 
 min_Pi <- -.02
@@ -54,7 +56,7 @@ gamma      <- 5      # risk aversion
 delta      <- .99    # preference for present
 beta       <- .3     # sensitivity of surplus to debt level
 d_star     <- .6     # targeted debt level
-sigma_eps  <- .04    # std dev of surplus shocks
+sigma_eps  <- .02    # std dev of surplus shocks
 alpha      <- 1      # elasticity of default proba
 s_star     <- .06    # max surplus
 std_Pi     <- .01    # standard deviation of inflation measurement errors (for Hamilton filter)
@@ -138,6 +140,7 @@ Model <- make_model(param,Model_ini)
 #save(Model,file="results/res_882024.Rdat")
 #save(Model,file="results/res_11082024.Rdat")
 #save(Model,file="results/res_12082024.Rdat")
+#save(Model,file="results/res_13082024.Rdat")
 
 #load(file="results/res_12082024.Rdat")
 

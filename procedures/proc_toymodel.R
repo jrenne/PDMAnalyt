@@ -1,6 +1,10 @@
 
-solve_ToyModel_notRcpp <- function(all_d,all_rr,all_eps,proba_eps,
-                                   Model,nb_iter){
+solve_ToyModel_notRcpp <- function(Model,grids,nb_iter){
+  
+  all_d     <- grids$all_d
+  all_rr    <- grids$all_rr
+  all_eps   <- grids$all_eps
+  proba_eps <- grids$proba_eps
   
   nb_grid_d  <- dim(all_d)[1]
   nb_grid_rr <- dim(all_rr)[1]
@@ -235,10 +239,12 @@ compute_LTRF_bond_prices_notRcpp <- function(Model,
 }
 
 
-compute_proba_def_notRcpp <- function(maxH,
-                                      indicators_x,
-                                      all_proba_def,
-                                      Probas){
+compute_proba_def_notRcpp <- function(Model_solved,maxH){
+  
+  indicators_x  <- Model_solved$indicators_x
+  all_proba_def <- Model_solved$all_proba_def
+  Probas        <- Model_solved$Probas
+  
   # Compute probabilities of default:
   nb_states <- dim(indicators_x)[1]
   nb_eps    <- dim(indicators_x)[2]
@@ -389,8 +395,8 @@ compute_distance <- function(param,targets,Model_ini){
                             .2 * (Std_real_yds[10] - targets$target_std_10_rea)^2)
   
   # Add penalty when yield curves are not monotonously increasing:
-  distance <- distance + 1000000*(avg_nom_yds[2]<avg_nom_yds[1])*(avg_nom_yds[1]-avg_nom_yds[2])
-  distance <- distance + 1000000*(avg_real_yds[2]<avg_real_yds[1])*(avg_real_yds[1]-avg_real_yds[2])
+  distance <- distance + 10000*(avg_nom_yds[2]<avg_nom_yds[1])*(avg_nom_yds[1]-avg_nom_yds[2])
+  #distance <- distance + 10000*(avg_real_yds[2]<avg_real_yds[1])*(avg_real_yds[1]-avg_real_yds[2])
   
   return(distance)
 }
@@ -545,24 +551,15 @@ run_strategy <- function(Model_solved,maxH,
   avgLT_ExpReturns  <- c(t(Model_solved$stat_distri) %*% res_LTprices$all_LT_ExpReturn_th)
   
   # Compute probabilities of default:
-  PD <- compute_proba_def(maxH=maxH,
-                          indicators_x  = Model_solved$indicators_x,
-                          all_proba_def = Model_solved$all_proba_def,
-                          Probas        = Model_solved$Probas)
+  PD <- compute_proba_def(Model_solved,maxH=maxH)
   
   # Compute bond prices:
-  res_prices <- compute_bond_prices(Model_solved$Model, maxH,
-                                    Model_solved$indicators_x,
-                                    Model_solved$all_proba_def,
-                                    Model_solved$Probas)
+  res_prices <- compute_bond_prices(Model_solved, maxH)
   
   # Compute risk-free yields:
-  Model_RF    <- Model_solved$Model
-  Model_RF$RR <- 1
-  res_prices_RF <- compute_bond_prices(Model_RF, maxH,
-                                       Model_solved$indicators_x,
-                                       Model_solved$all_proba_def,
-                                       Model_solved$Probas)
+  Model_solved_RF    <- Model_solved
+  Model_solved_RF$Model$RR <- 1
+  res_prices_RF <- compute_bond_prices(Model_solved_RF, maxH)
   
   # Compute unconditional distribution:
   p <- compute_uncond_distri(Model_solved$indicators_x,Model_solved$Probas,nb_iter4probas)
@@ -588,16 +585,21 @@ run_strategy <- function(Model_solved,maxH,
   stdv_rr   <- sqrt(sum(Model_solved$all_rr^2 * distri_rr) - mean_rr^2)
   
   # average PDs:
-  avg_PD <- t(p) %*% PD
+  avg_PD <- c(t(p) %*% PD)
+  
+  # average spreads:
+  spreads <- res_prices$all_rth - res_prices_RF$all_rth
+  avg_spreads   <- c(t(p) %*% spreads)
   
   return(list(p=p,
               res_prices = res_prices,
               res_prices_RF = res_prices_RF,
-              PD = PD, avg_PD = avg_PD,
+              PD = 100*PD, avg_PD = 100*avg_PD,
+              spreads = 10000*spreads, avg_spreads = 10000*avg_spreads,
               res_LTprices = res_LTprices, avgLT_ExpReturns = avgLT_ExpReturns,
-              distri_d=distri_d,mean_d=mean_d,stdv_d=stdv_d,
-              distri_Delta_d=distri_Delta_d,mean_Delta_d=mean_Delta_d,stdv_Delta_d=stdv_Delta_d,
-              distri_rr=distri_rr,mean_rr=mean_rr,stdv_rr=stdv_rr))
+              distri_d=distri_d,mean_d=100*mean_d,stdv_d=100*stdv_d,
+              distri_Delta_d=distri_Delta_d,mean_Delta_d=100*mean_Delta_d,stdv_Delta_d=100*stdv_Delta_d,
+              distri_rr=distri_rr,mean_rr=100*mean_rr,stdv_rr=100*stdv_rr))
 }
 
 
@@ -643,7 +645,7 @@ prepare_returns_yds <- function(Model,maxH){
   Std_nominal_yds <- sqrt(Var_nominal_yds)
   Std_TIPS_yds    <- sqrt(Var_TIPS_yds)
   Std_GDPLB_yds   <- sqrt(Var_GDPLB_yds)
-
+  
   exp_log_nominal_returns <- log(res_LTnominal_prices$all_LT_ExpReturn_th)
   exp_log_TIPS_returns    <- log(res_LTTIPS_prices$all_LT_ExpReturn_th)
   exp_log_GDPLB_returns   <- log(res_LTGDPLB_prices$all_LT_ExpReturn_th)
@@ -687,13 +689,13 @@ prepare_returns_yds <- function(Model,maxH){
               Std_annual_nominal_returns = Std_annual_nominal_returns,
               Std_annual_TIPS_returns = Std_annual_TIPS_returns,
               Std_annual_GDPLB_returns = Std_annual_GDPLB_returns
-              ))
+  ))
 }
 
 
 
-prepare_and_solve_3 <- function(Model,
-                                all_d,all_rr,all_eps,proba_eps){
+prepare_and_solve_3 <- function(Model,grids,nb_iter){
+  
   # Compute average growth and inflation:
   stat_distri <- compute_stat_distri(Model)
   mean_pi <- c(t(stat_distri) %*% Model$mu_pi)
@@ -704,34 +706,61 @@ prepare_and_solve_3 <- function(Model,
   Model_nominal$kappa_pi <- 0
   Model_nominal$kappa_y  <- 0
   # Correct chi:
-  Model_nominal$chi <- chi / exp(Model_nominal$kappa_pi*mean_pi + Model_nominal$kappa_y*mean_y)
-  print("--- Working on nominal-bond model ---")
-  Model_solved_nominal <- solve_ToyModel(all_d,all_rr,all_eps,proba_eps,
-                                         Model_nominal,nb_iter = nb_iter)
+  Model_nominal$chi <- Model$chi / exp(Model_nominal$kappa_pi*mean_pi + Model_nominal$kappa_y*mean_y)
+  print("--- Solving nominal-bond model ---")
+  Model_solved_nominal <- solve_ToyModel(Model_nominal,grids,nb_iter = nb_iter)
   
   # Issuance of TIPS: ------------------------------------------------------------
   Model_TIPS <- Model
   Model_TIPS$kappa_pi <- 1
   Model_TIPS$kappa_y  <- 0
   # Correct chi:
-  Model_TIPS$chi <- chi / exp(Model_TIPS$kappa_pi*mean_pi + Model_TIPS$kappa_y*mean_y)
-  print("--- Working on TIPS model ---")
-  Model_solved_TIPS <- solve_ToyModel(all_d,all_rr,all_eps,proba_eps,
-                                      Model_TIPS,nb_iter = nb_iter)
+  Model_TIPS$chi <- Model$chi / exp(Model_TIPS$kappa_pi*mean_pi + Model_TIPS$kappa_y*mean_y)
+  print("--- Solving TIPS model ---")
+  Model_solved_TIPS <- solve_ToyModel(Model_TIPS,grids,nb_iter = nb_iter)
   
   # Issuance of GDP-LBs: ---------------------------------------------------------
   Model_GDPLB <- Model
   Model_GDPLB$kappa_pi <- 1
   Model_GDPLB$kappa_y  <- 1
   # Correct chi:
-  Model_GDPLB$chi <- chi / exp(Model_GDPLB$kappa_pi*mean_pi + Model_GDPLB$kappa_y*mean_y)
-  print("--- Working on GDPLB model ---")
-  Model_solved_GDPLB <- solve_ToyModel(all_d,all_rr,all_eps,proba_eps,
-                                       Model_GDPLB,nb_iter = nb_iter)
+  Model_GDPLB$chi <- Model$chi / exp(Model_GDPLB$kappa_pi*mean_pi + Model_GDPLB$kappa_y*mean_y)
+  print("--- Solving GDPLB model ---")
+  Model_solved_GDPLB <- solve_ToyModel(Model_GDPLB,grids,nb_iter = nb_iter)
   
   return(list(Model_solved_nominal = Model_solved_nominal,
               Model_solved_TIPS    = Model_solved_TIPS,
               Model_solved_GDPLB   = Model_solved_GDPLB))
+}
+
+
+make_grid <- function(nb_grid,min_d=0,max_d,min_rr=0,max_rr,
+                      sigma_eps,all_quantiles_eps){
+  
+  # Determine debt's grid:
+  all_d <- matrix(seq(min_d,max_d,length.out=nb_grid),ncol=1)
+  
+  # Determine debt service's grid:
+  all_rr <- matrix(seq(min_rr,max_rr,length.out = nb_grid),ncol=1)
+  
+  nb_states <- length(all_d)^2*length(all_rr)
+  
+  # Determine considered values of epsilon:
+  # (Approach: based on quantiles of N(0,1), deduce probas):
+  aa <- c(-Inf,all_quantiles_eps)
+  bb <- c(all_quantiles_eps,Inf)
+  phi_a <- dnorm(aa)
+  phi_b <- dnorm(bb)
+  Phi_a <- pnorm(aa)
+  Phi_b <- pnorm(bb)
+  all_eps <- sigma_eps * (phi_a - phi_b)/(Phi_b - Phi_a)
+  all_eps <- matrix(all_eps,ncol=1)
+  proba_eps <- matrix(pnorm(bb) - pnorm(aa),ncol=1)
+  
+  return(list(all_d = all_d,
+              all_rr = all_rr,
+              all_eps = all_eps,
+              proba_eps = proba_eps))
 }
 
 

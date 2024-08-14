@@ -549,11 +549,14 @@ Rcpp::List compute_LTRF_bond_prices(const Rcpp::List Model,
 
 
 // [[Rcpp::export]]
-Rcpp::List compute_bond_prices(const Rcpp::List Model,
-                               const int maxH,
-                               const Eigen::MatrixXd indicators_x,
-                               const Eigen::MatrixXd all_proba_def,
-                               const Eigen::MatrixXd Probas){
+Rcpp::List compute_bond_prices(const Rcpp::List Model_solved,
+                               const int maxH){
+  
+  Rcpp::List Model = Model_solved("Model") ;
+  
+  Eigen::MatrixXd indicators_x = Model_solved("indicators_x") ;
+  Eigen::MatrixXd all_proba_def = Model_solved("all_proba_def") ;
+  Eigen::MatrixXd Probas = Model_solved("Probas") ;
   
   Rcpp::List res_LTprices    = compute_LTRF_bond_prices(Model, maxH) ;
   Eigen::MatrixXd all_LT_Bth = res_LTprices("all_LT_Bth") ;
@@ -726,7 +729,7 @@ Rcpp::List compute_stat_distri_and_rbar(const Rcpp::List Model){
   OnepChiPstar = add(mult(Pstar,chi),1) ;
   
   double r_bar = 1/(Pstar.transpose() * stat_distri)(0,0) - 1 + chi ;
-
+  
   return List::create(Named("r_bar")        = r_bar,
                       Named("stat_distri")  = stat_distri,
                       Named("OnepChiPstar") = OnepChiPstar,
@@ -737,13 +740,15 @@ Rcpp::List compute_stat_distri_and_rbar(const Rcpp::List Model){
 
 
 // [[Rcpp::export]]
-Rcpp::List solve_ToyModel(const Eigen::MatrixXd all_d,
-                          const Eigen::MatrixXd all_rr,
-                          const Eigen::MatrixXd all_eps,
-                          const Eigen::MatrixXd proba_eps,
-                          const Rcpp::List Model,
+Rcpp::List solve_ToyModel(const Rcpp::List Model,
+                          const Rcpp::List grids,
                           const int nb_iter
 ){
+  
+  Eigen::MatrixXd all_d     = grids("all_d") ;
+  Eigen::MatrixXd all_rr    = grids("all_rr") ;
+  Eigen::MatrixXd all_eps   = grids("all_eps") ;
+  Eigen::MatrixXd proba_eps = grids("proba_eps") ;
   
   Eigen::MatrixXd Omega  = Model("Omega") ;
   Eigen::MatrixXd mu_pi  = Model("mu_pi") ;
@@ -838,7 +843,7 @@ Rcpp::List solve_ToyModel(const Eigen::MatrixXd all_d,
   OnepChiPstar = add(mult(Pstar.transpose(),chi),1) ;
   //XXXXX
   rstar = add(Pstar.cwiseInverse(), - 1 + chi) ; // will be used to initialize q
-
+  
   Eigen::MatrixXd Mat_1 = Eigen::MatrixXd::Constant(nb_states, nb_m * nb_eps, 1) ;
   
   d   = kronecker_cpp(kronecker_cpp(kronecker_cpp(vec_1_m,vec_1_rr),vec_1_d),all_d) ;
@@ -968,7 +973,7 @@ Rcpp::List solve_ToyModel(const Eigen::MatrixXd all_d,
       
       Q = E.array() * Probas.array() ;
       q = add((Q * vec_1_m_eps).cwiseInverse(),chi - 1) ; // update q
-
+      
       // Update q0 (risk-free yield, obtained for RR=1):
       all_q0_tp1 = fill_from_indic(indicators_x, q0) ;
       
@@ -1010,10 +1015,12 @@ Rcpp::List solve_ToyModel(const Eigen::MatrixXd all_d,
 
 
 // [[Rcpp::export]]
-Eigen::MatrixXd compute_proba_def(const int maxH,
-                                  const Eigen::MatrixXd indicators_x,
-                                  const Eigen::MatrixXd all_proba_def,
-                                  const Eigen::MatrixXd Probas){
+Eigen::MatrixXd compute_proba_def(const Rcpp::List Model_solved,
+                                  const int maxH){
+  
+  Eigen::MatrixXd indicators_x  = Model_solved("indicators_x") ;
+  Eigen::MatrixXd all_proba_def = Model_solved("all_proba_def") ;
+  Eigen::MatrixXd Probas        = Model_solved("Probas") ;
   
   int nb_states = indicators_x.rows() ;
   int nb_eps    = indicators_x.cols() ;

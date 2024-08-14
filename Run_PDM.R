@@ -1,38 +1,68 @@
 
-nb_grid <- 27 # number of values per state variable
-source("make_grids.R")
+nb_grid <- 37 # number of values per state variable
+nb_iter <- 30 # to solve model
 
-nb_iter <- 30 # for model solution
+maxH <- 10
 
-chi <- Model$chi
-#chi <- .5
+outputs <- c("mean_d","stdv_d","mean_rr","stdv_rr",
+             "stdv_Delta_d","avg_PD[maxH]","avg_spreads[maxH]")
 
-# Determine grid of debt service:
-max_rr <- .10
-all_rr <- seq(0,max_rr,length.out = nb_grid)
-all_rr <- matrix(all_rr,ncol=1)
+grids <- make_grid(nb_grid = nb_grid,
+                   min_d = .4,
+                   max_d = 1.5,
+                   min_rr=.0,
+                   max_rr=.15,
+                   sigma_eps = .03,
+                   all_quantiles_eps = c(-2,-1,1,2))
 
-Models <- prepare_and_solve_3(Model,
-                              all_d,all_rr,all_eps,proba_eps)
+values_of_chi      <- c(.9)
+values_of_kappa_pi <- seq(0,1,by=.2)
+values_of_kappa_y  <- c(0)
 
-strat_nominal <- run_strategy(Models$Model_solved_nominal,maxH=10)
-strat_TIPS    <- run_strategy(Models$Model_solved_TIPS,maxH=10)
-strat_GDPLB   <- run_strategy(Models$Model_solved_GDPLB,maxH=10)
+M <- NULL
+parameters <- NULL
 
-M <- rbind(c(strat_nominal$mean_d,strat_TIPS$mean_d,strat_GDPLB$mean_d),
-           c(strat_nominal$stdv_d,strat_TIPS$stdv_d,strat_GDPLB$stdv_d),
-           c(strat_nominal$mean_rr,strat_TIPS$mean_rr,strat_GDPLB$mean_rr),
-           c(strat_nominal$stdv_rr,strat_TIPS$stdv_rr,strat_GDPLB$stdv_rr),
-           c(strat_nominal$stdv_Delta_d,strat_TIPS$stdv_Delta_d,strat_GDPLB$stdv_Delta_d),
-           c(strat_nominal$avg_PD[maxH],strat_TIPS$avg_PD[maxH],strat_GDPLB$avg_PD[maxH]))
+for(chi in values_of_chi){
+  for(kappa_pi in values_of_kappa_pi){
+    for(kappa_y in values_of_kappa_y){
+      
+      print(paste("chi = ",chi," , kappa_pi = ",kappa_pi,
+                  " , kappa_y = ",kappa_y,sep=""))
+      Model_i <- Model
+      Model_i$kappa_pi <- kappa_pi
+      Model_i$kappa_y  <- kappa_y
+      Model_i$chi      <- chi
+      
+      Model_solved_i <- solve_ToyModel(Model_i,grids,nb_iter = nb_iter)
+      
+      # p <- compute_uncond_distri(Model_solved_i$indicators_x,
+      #                            Model_solved_i$Probas,1000)
+      # distri_d  <- compute_distri_x(grids$all_d,Model_solved_i$d,p)
+      # plot(grids$all_d,distri_d)
+      # distri_rr  <- compute_distri_x(grids$all_rr,Model_solved_i$rr,p)
+      # plot(grids$all_rr,distri_rr)
+      
+      strat_i <- run_strategy(Model_solved_i,maxH=10)
+      
+      thisLine <- NULL
+      for(output in outputs){
+        eval(parse(text = gsub(" ","",paste("aux <- strat_i$",output,sep=""))))
+        thisLine <- c(thisLine,aux)
+      }
+      
+      M <- rbind(M,thisLine)
+      parameters <- rbind(parameters,
+                          c(chi,kappa_pi,kappa_y))
+    }
+  }
+}
 
-colnames(M) <- c("Nominal","TIPS","GDPLB")
-rownames(M) <- c("Mean d","Stdv d",
-                 "Mean r","Stdv r",
-                 "Stdv D(d)","avg PD")
+colnames(parameters) <- c("chi","kappa_pi","kappa_y")
+colnames(M)          <- outputs
 
-print(M)
-
+plot(M[(parameters[,"kappa_y"]==0),"mean_d"],M[(parameters[,"kappa_y"]==0),"stdv_d"])
+plot(M[(parameters[,"kappa_y"]==0)&(parameters[,"chi"]==0.9),"mean_rr"],
+     M[(parameters[,"kappa_y"]==0)&(parameters[,"chi"]==0.9),"avg_PD[maxH]"])
 
 
 

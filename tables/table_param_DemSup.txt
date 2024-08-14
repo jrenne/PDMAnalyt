@@ -1,0 +1,17 @@
+\begin{table}[ph!]
+\caption{Stylized models: parameterizations}
+\label{tab:DemSup_parameters}
+\begin{tabular*}{\textwidth}{c@{\extracolsep{\fill}}rrrrrrccc}
+\hline
+Regime&\multicolumn{2}{c}{$\mu_\pi$}&&$\mu_y$&&\multicolumn{3}{c}{$\Omega$}\\
+&D&S\\
+\hline
+1&$-0.010$&$0.070$&&$-0.010$&&$0.800$&$0.200$&$0.000$\\
+2&$0.030$&$0.030$&&$0.020$&&$0.100$&$0.800$&$0.100$\\
+3&$0.070$&$-0.010$&&$0.050$&&$0.000$&$0.200$&$0.800$\\
+\hline
+\end{tabular*}
+\begin{footnotesize}
+\parbox{\linewidth}{\textit{Notes}: This table shows the parameterizations of the stylized demand/supply models. We also have $\alpha=0.30$, $\beta=0.10$, $\gamma=10.00$, $\beta=0.10$, $d^*=0.80$, $s^*=0.05$, $RR=0.50$.}
+\end{footnotesize}
+\end{table}

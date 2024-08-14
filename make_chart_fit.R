@@ -37,7 +37,6 @@ make.entry <- function(x,format.nb){
   output <- paste("$",sprintf(format.nb,x),"$",sep="")
   return(output)
 }
-
 format.nb0 <- paste("%.",0,"f",sep="")
 format.nb1 <- paste("%.",1,"f",sep="")
 format.nb2 <- paste("%.",2,"f",sep="")
@@ -67,7 +66,7 @@ for(i in 1:nb_m){
   }
   this_line <- paste(i,"&",make.entry(Model$mu_pi[i],format.nb3),
                      "&&",make.entry(Model$mu_y[i],format.nb3),
-                     "&&",pi_i,
+                     "&",pi_i,
                      "\\\\",sep="")
   latex_table <- rbind(latex_table,
                        this_line)
