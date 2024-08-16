@@ -103,8 +103,12 @@ solve_ToyModel_notRcpp <- function(Model,grids,nb_iter){
   indicators_d_t   <- matrix(1:nb_grid_d,nb_states,nb_eps*nb_m)
   indicators_m_tp1 <- t(matrix((1:nb_m) %x% vec_ones_eps,nb_m*nb_eps,nb_states))
   
+  
   indicators_x <- NULL
-  all_proba_def = NULL
+  
+  # all_lambdas   <- pmax(beta * (all_d_t - d_star) + all_eta_tp1 - s_star,0)
+  all_lambdas   <- pmax(all_d_t - d_star,0)
+  all_proba_def <- 1 - exp(- alpha * all_lambdas)
   
   if(nb_iter>0){
     for(i in 1:nb_iter){
@@ -115,7 +119,9 @@ solve_ToyModel_notRcpp <- function(Model,grids,nb_iter){
       
       all_rr_tp1 <- all_q_t * all_zeta_tp1 * (all_d_t - chi * all_zeta_t * all_d_t_1) + 
         chi * all_zeta_tp1 * all_rr_t
-      all_d_tp1  <- all_zeta_tp1 * all_d_t - beta * (all_d_t - d_star) -
+      # all_d_tp1  <- all_zeta_tp1 * all_d_t - beta * (all_d_t - d_star) -
+      #   all_eta_tp1 + all_rr_tp1
+      all_d_tp1  <- all_zeta_tp1 * all_d_t - s_star - beta * all_d_t -
         all_eta_tp1 + all_rr_tp1
       
       # Match the previous states to the closest ones in the grid
@@ -125,9 +131,6 @@ solve_ToyModel_notRcpp <- function(Model,grids,nb_iter){
       indicators_x <- indicators_d_tp1 + (indicators_d_t - 1) * nb_grid_d + 
         (indicators_rr_tp1 - 1) * nb_grid_d^2 +
         (indicators_m_tp1 - 1) * nb_grid_d^2 * nb_grid_rr
-      
-      all_lambdas   <- pmax(beta * (all_d_t - d_star) + all_eta_tp1 - s_star,0)
-      all_proba_def <- 1 - exp(- alpha * all_lambdas)
       
       # Compute right-hand side of the equation, conditional on varepsilon:
       all_q_tp1 <- matrix(q[c(indicators_x)],nb_states,nb_eps*nb_m)
@@ -385,14 +388,14 @@ compute_distance <- function(param,targets,Model_ini){
   Std_nom_yds  <- sqrt(Var_nom_yds)
   Std_real_yds <- sqrt(Var_real_yds)
   
-  distance <- 10000000 * ((avg_nom_yds[10] - avg_nom_yds[1] - targets$target_slop_nom)^2 +
-                            .25*(avg_nom_yds[10] - targets$target_10_nom)^2 +
-                            (avg_real_yds[10] - avg_real_yds[2] - targets$target_slop_rea)^2 +
-                            .25*(avg_real_yds[10] - targets$target_10_rea)^2 + 
-                            .1*(avg_Pi - targets$target_avg_Pi)^2 +
-                            .1*(avg_Dy - targets$target_avg_Dy)^2 +
-                            .0 * (Std_nom_yds[10]  - targets$target_std_10_nom)^2 +
-                            .2 * (Std_real_yds[10] - targets$target_std_10_rea)^2)
+  distance <- 5000000 * ((avg_nom_yds[10] - avg_nom_yds[1] - targets$target_slop_nom)^2 +
+                           .25*(avg_nom_yds[10] - targets$target_10_nom)^2 +
+                           (avg_real_yds[10] - avg_real_yds[2] - targets$target_slop_rea)^2 +
+                           .25*(avg_real_yds[10] - targets$target_10_rea)^2 + 
+                           .1*(avg_Pi - targets$target_avg_Pi)^2 +
+                           .1*(avg_Dy - targets$target_avg_Dy)^2 +
+                           .0 * (Std_nom_yds[10]  - targets$target_std_10_nom)^2 +
+                           .2 * (Std_real_yds[10] - targets$target_std_10_rea)^2)
   
   # Add penalty when yield curves are not monotonously increasing:
   distance <- distance + 10000*(avg_nom_yds[2]<avg_nom_yds[1])*(avg_nom_yds[1]-avg_nom_yds[2])
@@ -591,7 +594,13 @@ run_strategy <- function(Model_solved,maxH,
   spreads <- res_prices$all_rth - res_prices_RF$all_rth
   avg_spreads   <- c(t(p) %*% spreads)
   
+  # Debt-at-Risk:
+  DaR95 <- interpolate_quantile(Model_solved$all_d,distri_d,.95)
+  DaR99 <- interpolate_quantile(Model_solved$all_d,distri_d,.99)
+  
   return(list(p=p,
+              DaR95 = DaR95,
+              DaR99 = DaR99,
               res_prices = res_prices,
               res_prices_RF = res_prices_RF,
               PD = 100*PD, avg_PD = 100*avg_PD,
@@ -762,5 +771,82 @@ make_grid <- function(nb_grid,min_d=0,max_d,min_rr=0,max_rr,
               all_eps = all_eps,
               proba_eps = proba_eps))
 }
+
+
+compute_determ_steady_state <- function(Model,
+                                        indic_d_bar_from_s_star = 0,
+                                        d_bar = .8){
+  
+  # Compute average growth and inflation:
+  stat_distri <- compute_stat_distri(Model)
+  mean_pi <- c(t(stat_distri) %*% Model$mu_pi)
+  mean_y  <- c(t(stat_distri) %*% Model$mu_y)
+  
+  # Approximate q mean:
+  res_LT_bond_prices <- compute_LTRF_bond_prices(Model,maxH = 20)
+  # avg_yields <- t(stat_distri) %*% res_LT_bond_prices$all_LT_rth
+  avg_Bondprices <- t(stat_distri) %*% res_LT_bond_prices$all_LT_Bth
+  avg_yields <- -1/1:maxH * log(avg_Bondprices)
+  duration <- 10 # initial (guess) value
+  for(i in 1:10){
+    q_bar <- avg_yields[duration]
+    D <- 1/(1 + q_bar - Model$chi)
+    duration <- round(D)
+  }
+  
+  zeta_bar     <- c(t(stat_distri) %*% exp((Model$kappa_pi-1)*Model$mu_pi + (Model$kappa_y-1)*Model$mu_y))
+  zeta_bar_bar <- c(t(stat_distri) %*% exp(- Model$mu_pi - Model$mu_y))
+  
+  s_star <- Model$s_star
+  beta   <- Model$beta
+  
+  if(indic_d_bar_from_s_star == 0){
+    d_bar <- - s_star/(1 + beta - zeta_bar * (1 + q_bar))
+  }else{
+    s_star <- - d_bar * (1 + beta - zeta_bar * (1 + q_bar))
+  }
+  r_bar <- ((zeta_bar - zeta_bar_bar) + q_bar * zeta_bar) * d_bar
+  s_bar <- s_star + beta * d_bar
+  
+  return(list(d_bar = d_bar,
+              r_bar = r_bar,
+              q_bar = q_bar,
+              s_bar = s_bar,
+              s_star = s_star))
+}
+
+
+interpolate_quantile <- function(all_x,distri_x,proba){
+  cumdf <- cumsum(distri_x)
+  
+  if(sum(cumdf == proba)>0){
+    index <- which(cumdf==proba)
+    quantil <- all_x[index]
+  }
+  
+  below <- which(cumdf<proba)
+  below <- below[length(below)]
+  value_below <- all_x[below]
+  distance2below <- proba - cumdf[below]
+  
+  above <- which(cumdf>proba)[1]
+  value_above <- all_x[above]
+  distance2above <- cumdf[above] - proba
+  
+  Dtot <- distance2below + distance2above
+  quantil <- value_below * distance2above/Dtot +
+    value_above * distance2below/Dtot
+  
+  return(quantil)
+}
+
+ShadowInt_PD_not <- function(fs,alpha,sigma){
+  # values.fs are the values of the (log) fiscal space
+  P <- pnorm(fs/sigma) + 
+    exp(alpha*fs + alpha^2 * sigma^2/2) * (1 - pnorm(fs/sigma + sigma * alpha))
+  P <- 1 - P
+  return(P)
+}
+
 
 

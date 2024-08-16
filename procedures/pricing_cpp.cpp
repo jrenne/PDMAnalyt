@@ -11,15 +11,6 @@
 using namespace Rcpp;
 using namespace Eigen;
 
-// [[Rcpp::export]]
-Rcpp::List f_essai_cpp(const  int & i,
-                       const  double & x){
-  
-  double i2 = pow(i,2) ;
-  
-  return List::create(Named("i2")  = i2) ;
-  
-}
 
 
 
@@ -265,6 +256,29 @@ Eigen::MatrixXd apply_cumsum(Eigen::MatrixXd M){
   }
   return MatriX ;
 }
+
+
+// [[Rcpp::export]]
+Eigen::MatrixXd ShadowInt_PD(const  Eigen::MatrixXd & fs,
+                             const  double & alpha,
+                             const  double & sigma){
+  // Probability of default (shadow-intensity framework, with uncertainty over the threshold)
+  // fs stands for "fiscal space"
+  
+  Eigen::MatrixXd fs_over_sigma = mult(fs,1/sigma) ;
+  
+  double aux = alpha*alpha * sigma*sigma/2 ;
+  
+  Eigen::MatrixXd P = pnorm_cpp(fs_over_sigma).array() +
+    ((add(mult(fs,alpha),aux).array()).exp()).array() *
+    add(- pnorm_cpp(add(fs_over_sigma,sigma * alpha)),1).array() ;
+  // Eigen::MatrixXd P = (add(mult(u,alpha),aux).array()).exp() ;
+  
+  P = add(-P,1) ;
+  
+  return P ;
+}
+
 
 
 // // [[Rcpp::export]]
@@ -941,8 +955,13 @@ Rcpp::List solve_ToyModel(const Rcpp::List Model,
         all_zeta_tp1.array() * 
         mult(all_rr_t.array() - (all_zeta_t - all_zeta_bar_t).array() * all_d_t_1.array(),chi).array() ;
       
+      // all_d_tp1  = all_zeta_bar_tp1.array() * all_d_t.array() -
+      //   mult(add(all_d_t, - d_star),beta).array() - all_eta_tp1.array() +
+      //   all_rr_tp1.array() ;
+      
+      // Novel specification:
       all_d_tp1  = all_zeta_bar_tp1.array() * all_d_t.array() -
-        mult(add(all_d_t, - d_star),beta).array() - all_eta_tp1.array() +
+        add(mult(all_d_t,beta),s_star).array() - all_eta_tp1.array() +
         all_rr_tp1.array() ;
       
       indicators_d_tp1  = find_closest_in_vec(all_d_tp1,all_d) ;
@@ -954,9 +973,9 @@ Rcpp::List solve_ToyModel(const Rcpp::List Model,
         mult(indicators_m_tp1 - Mat_1,nb_grid_d*nb_grid_d*nb_grid_rr).array() ;
       
       // Compute probabilities of default:
-      all_lambdas = pmax_cpp(
-        add(mult(add(all_d_t, - d_star),beta).array() + all_eta_tp1.array(), - s_star),0) ;
-      // all_lambdas = pmax_cpp(add(all_d_t, - d_star),0) ;
+      // all_lambdas = pmax_cpp(
+      //   add(mult(add(all_d_t, - d_star),beta).array() + all_eta_tp1.array(), - s_star),0) ;
+      all_lambdas = pmax_cpp(add(all_d_t, - d_star),0) ;
       
       all_proba_def = add(- ((mult(all_lambdas,-alpha)).array()).exp(),1) ;
       

@@ -57,6 +57,8 @@ if(indic_estim == 1){
   start_year <- "1968"
   source("estimation/run_estim.R")
 }else{
-  load(file="results/res_12082024.Rdat")
+  #load(file="results/res_12082024.Rdat")
+  #load(file="results/res_13082024.Rdat")
+  load(file="results/res_14082024.Rdat")
 }
 

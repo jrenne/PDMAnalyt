@@ -1,10 +1,10 @@
 
-nb_grid <- 37 # number of values per state variable
+nb_grid <- 23 # number of values per state variable
 nb_iter <- 30 # to solve model
 
 maxH <- 10
 
-outputs <- c("mean_d","stdv_d","mean_rr","stdv_rr",
+outputs <- c("mean_d","stdv_d","DaR95","mean_rr","stdv_rr",
              "stdv_Delta_d","avg_PD[maxH]","avg_spreads[maxH]")
 
 grids <- make_grid(nb_grid = nb_grid,
@@ -16,7 +16,7 @@ grids <- make_grid(nb_grid = nb_grid,
                    all_quantiles_eps = c(-2,-1,1,2))
 
 values_of_chi      <- c(.9)
-values_of_kappa_pi <- seq(0,1,by=.2)
+values_of_kappa_pi <- seq(0,1,by=.5)
 values_of_kappa_y  <- c(0)
 
 M <- NULL
@@ -32,6 +32,12 @@ for(chi in values_of_chi){
       Model_i$kappa_pi <- kappa_pi
       Model_i$kappa_y  <- kappa_y
       Model_i$chi      <- chi
+      
+      # ============================================
+      # ============================================
+      Model_i$delta <- .99 - .01 * kappa_pi
+      # ============================================
+      # ============================================
       
       Model_solved_i <- solve_ToyModel(Model_i,grids,nb_iter = nb_iter)
       

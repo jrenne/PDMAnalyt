@@ -13,7 +13,7 @@ DATA <- DATA[indic_fst:dim(DATA)[1],]
 nb_m <- 5
 
 # Optimization set up:
-maxit.nlminb <- 80
+maxit.nlminb <- 100
 maxit.NlMd   <- 4000
 nb_loops     <- 2
 
@@ -108,7 +108,7 @@ Model_ini <- list(gamma=1.2,
                   std_nom_yd = std_nom_yd)
 
 param <- model2param(Model_ini)
-param <- param + .6*rnorm(param)
+param <- param + 1*rnorm(param)
 
 #param <- param + .1*rnorm(param)
 
@@ -141,8 +141,9 @@ Model <- make_model(param,Model_ini)
 #save(Model,file="results/res_11082024.Rdat")
 #save(Model,file="results/res_12082024.Rdat")
 #save(Model,file="results/res_13082024.Rdat")
+#save(Model,file="results/res_14082024.Rdat")
 
-#load(file="results/res_12082024.Rdat")
+#load(file="results/res_14082024.Rdat")
 
 source("make_chart_fit.R")
 
