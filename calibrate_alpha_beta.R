@@ -6,8 +6,8 @@ nb_grid <- 25 # number of values per state variable
 Model$sigma_eps <- .03
 
 grids <- make_grid(nb_grid = 23,
-                   min_d = .4,
-                   max_d = 1.5,
+                   min_d = .5,
+                   max_d = 1.6,
                    min_rr = 0,
                    max_rr = .15,
                    sigma_eps = .03,
@@ -15,7 +15,7 @@ grids <- make_grid(nb_grid = 23,
 
 candidate_alpha_values  <- c(.1,.2)
 candidate_beta_values   <- c(.02,.05,.1,.2)
-candidate_d_star_values <- c(.9,1)
+candidate_d_star_values <- c(1,1.1,1.2)
 
 Model$RR <- .5
 Model$mu_eta <- 0 * Model$mu_y
@@ -59,7 +59,7 @@ for(alpha in candidate_alpha_values){
       
       # Determine s_star to have 
       res_aux <- compute_determ_steady_state(Model,
-                                             indic_d_bar_from_s_star = 1,
+                                             indic_d_bar_from_s_star = 0,
                                              d_bar = d_bar)
       Model$s_star <- res_aux$s_star
       
@@ -88,6 +88,7 @@ for(alpha in candidate_alpha_values){
       stdv_d_in_percent <- sqrt(var_d) * 100
       
       distance <- (spread_in_bps - Targets$spread_in_bps)^2 +
+        (mean_d_in_percent - Targets$mean_d_in_percent)^2 +
         (stdv_d_in_percent - Targets$stdv_d_in_percent)^2
       
       print("------------------------------")

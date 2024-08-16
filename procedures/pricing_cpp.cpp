@@ -780,6 +780,7 @@ Rcpp::List solve_ToyModel(const Rcpp::List Model,
   double kappa_y  = Model("kappa_y") ;
   double nu_pi    = Model("nu_pi") ;
   double nu_y     = Model("nu_y") ;
+  double sigma_nu = Model("sigma_nu") ;
   
   int nb_grid_d  = all_d.rows() ;
   int nb_grid_rr = all_rr.rows() ;
@@ -975,9 +976,10 @@ Rcpp::List solve_ToyModel(const Rcpp::List Model,
       // Compute probabilities of default:
       // all_lambdas = pmax_cpp(
       //   add(mult(add(all_d_t, - d_star),beta).array() + all_eta_tp1.array(), - s_star),0) ;
-      all_lambdas = pmax_cpp(add(all_d_t, - d_star),0) ;
+      // all_lambdas = pmax_cpp(add( - all_d_t, d_star),0) ;
       
-      all_proba_def = add(- ((mult(all_lambdas,-alpha)).array()).exp(),1) ;
+      // all_proba_def = add(- ((mult(all_lambdas,-alpha)).array()).exp(),1) ;
+      all_proba_def = ShadowInt_PD(add(- all_d_t,d_star),alpha,sigma_nu) ;
       
       // Update q (sovereign yields):
       all_q_tp1 = fill_from_indic(indicators_x, q) ;

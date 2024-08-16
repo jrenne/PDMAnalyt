@@ -1,0 +1,44 @@
+\begin{table}[ph!]
+\caption{Performances of debt issuance strategies in stylized versions of the model, $\mu_\eta=0\mu_y$}
+\label{tab:DemSup_elast0}
+\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}ccccccccc}
+\hline
+&&$\mathbb{E}(d)$&$\sqrt{\mathbb{V}(d)}$&$q_{95}(d)$&$\mathbb{E}(r)$&$\sqrt{\mathbb{V}(r)}$&$\sqrt{\mathbb{V}(\Delta d)}$&$\mathbb{E}(PD)$&$\mathbb{E}(spd)$\\
+\hline
+\\
+\hline
+\multicolumn{ 10 }{l}{Coupon decay rate $\chi= 0.2 $}\\
+\\
+&&\multicolumn{8}{l}{Demand-driven economy ($\chi=0.2$)}\\
+\hline
+Nominal &&$85.94$&$8.15$&$0.98$&$4.18$&$1.78$&$3.09$&$0.93$&$7.18$ \\
+TIPS &&$89.82$&$6.10$&$0.97$&$4.94$&$2.46$&$2.18$&$1.22$&$7.10$ \\
+GDP-LBs &&$93.58$&$4.61$&$0.99$&$5.52$&$3.06$&$2.32$&$1.87$&$9.63$ \\
+\\
+&&\multicolumn{8}{l}{Supply-driven economy ($\chi=0.2$)}\\
+\hline
+Nominal &&$96.33$&$5.94$&$1.04$&$5.95$&$0.55$&$2.19$&$2.94$&$13.77$ \\
+TIPS &&$89.87$&$6.06$&$0.97$&$5.04$&$1.40$&$2.18$&$1.23$&$7.12$ \\
+GDP-LBs &&$94.09$&$4.51$&$0.99$&$5.70$&$0.76$&$2.19$&$1.99$&$10.10$ \\
+\\
+\hline
+\multicolumn{ 10 }{l}{Coupon decay rate $\chi= 0.9 $}\\
+\\
+&&\multicolumn{8}{l}{Demand-driven economy ($\chi=0.9$)}\\
+\hline
+Nominal &&$76.27$&$12.09$&$0.93$&$2.74$&$0.33$&$3.11$&$0.45$&$3.80$ \\
+TIPS &&$85.42$&$8.60$&$0.98$&$4.14$&$1.68$&$2.41$&$0.88$&$5.58$ \\
+GDP-LBs &&$92.66$&$5.06$&$0.99$&$5.38$&$3.19$&$2.07$&$1.70$&$8.48$ \\
+\\
+&&\multicolumn{8}{l}{Supply-driven economy ($\chi=0.9$)}\\
+\hline
+Nominal &&$101.75$&$10.12$&$1.17$&$6.79$&$1.02$&$2.30$&$6.15$&$28.87$ \\
+TIPS &&$87.29$&$9.06$&$1.01$&$4.63$&$2.04$&$2.41$&$1.28$&$8.16$ \\
+GDP-LBs &&$91.49$&$5.50$&$0.98$&$5.28$&$0.72$&$2.14$&$1.48$&$7.14$ \\
+\\
+\hline
+\end{tabular*}
+\begin{footnotesize}
+\parbox{\linewidth}{\textit{Notes}: This table shows performance metrics associated with three different debt issuance strategies; each strategy consists in issuing a given type of perpetuities: a nominal perpetuity ($\kappa_\pi=0$ and $\kappa_y=0$), an inflation-indexed perpetuity nominal ($\kappa_\pi=1$ and $\kappa_y=0$), and a GDP-indexed perpetuity nominal ($\kappa_\pi=1$ and $\kappa_y=1$). We consider two different values of $\chi$ (the higher $\chi$, the higher the average debt maturity). '$d$' denotes the debt-to-GDP ratio. '$r$' denotes the debt service, including debt indexation (in percent of GDP). '$\sqrt{\mathbb{V}(x)}$' corresponds to the standard deviation of variable $x$; '$PD$' stands for '10-year probability of default' (expressed in percent); '$spd$' stands for '10-year credit spread' (expressed in basis point), '$q_{95}(d)$' is the $95^{th}$ percentile of the debt-to-GDP distribution.}
+\end{footnotesize}
+\end{table}

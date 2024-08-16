@@ -59,6 +59,6 @@ if(indic_estim == 1){
 }else{
   #load(file="results/res_12082024.Rdat")
   #load(file="results/res_13082024.Rdat")
-  load(file="results/res_14082024.Rdat")
+  load(file="results/res_16082024.Rdat")
 }
 

@@ -39,7 +39,9 @@ targets <- list(
   target_avg_Pi = mean(DATA$pi,na.rm=TRUE),
   target_avg_Dy = mean(DATA$dy,na.rm=TRUE),
   target_std_10_nom = sd(DATA$SVENY10,na.rm=TRUE)/100,
-  target_std_10_rea = sd(DATA$TIPSY10,na.rm=TRUE)/100)
+  target_std_10_rea = sd(DATA$TIPSY10,na.rm=TRUE)/100,
+  IRP10 = 0 # 10-year inflation risk premium
+  )
 
 # targets <- list(
 #   target_10_nom = .06,
@@ -64,7 +66,7 @@ std_Dy     <- .01    # standard deviation of GDP growth measurement errors (for 
 std_nom_yd <- .008   # standard deviation of yield measurement errors (for Hamilton filter)
 nu_y       <- -.2 * 0
 nu_pi      <- .05 * 0
-
+sigma_nu   <- .10    # uncertainty regarding debt threshold
 
 # Perpetuity specification:
 kappa_pi <- 0 # Inflation indexation (1 = TIPS)
@@ -92,6 +94,7 @@ Model_ini <- list(gamma=1.2,
                   beta      = beta,
                   d_star    = d_star,
                   sigma_eps = sigma_eps,
+                  sigma_nu  = sigma_nu,
                   alpha     = alpha,
                   s_star    = s_star,
                   RR        = RR,
@@ -142,8 +145,9 @@ Model <- make_model(param,Model_ini)
 #save(Model,file="results/res_12082024.Rdat")
 #save(Model,file="results/res_13082024.Rdat")
 #save(Model,file="results/res_14082024.Rdat")
+#save(Model,file="results/res_16082024.Rdat")
 
-#load(file="results/res_14082024.Rdat")
+#load(file="results/res_16082024.Rdat")
 
 source("make_chart_fit.R")
 

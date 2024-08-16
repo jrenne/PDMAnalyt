@@ -8,15 +8,15 @@ outputs <- c("mean_d","stdv_d","DaR95","mean_rr","stdv_rr",
              "stdv_Delta_d","avg_PD[maxH]","avg_spreads[maxH]")
 
 grids <- make_grid(nb_grid = nb_grid,
-                   min_d = .4,
-                   max_d = 1.5,
+                   min_d = .5,
+                   max_d = 1.6,
                    min_rr=.0,
                    max_rr=.15,
                    sigma_eps = .03,
                    all_quantiles_eps = c(-2,-1,1,2))
 
-values_of_chi      <- c(.9)
-values_of_kappa_pi <- seq(0,1,by=.5)
+values_of_chi      <- c(.8)
+values_of_kappa_pi <- seq(0,1,by=.25)
 values_of_kappa_y  <- c(0)
 
 M <- NULL
@@ -35,18 +35,20 @@ for(chi in values_of_chi){
       
       # ============================================
       # ============================================
-      Model_i$delta <- .99 - .01 * kappa_pi
+      Model_i$delta <- Model$delta - .0 * kappa_pi
       # ============================================
       # ============================================
       
       Model_solved_i <- solve_ToyModel(Model_i,grids,nb_iter = nb_iter)
       
-      # p <- compute_uncond_distri(Model_solved_i$indicators_x,
-      #                            Model_solved_i$Probas,1000)
-      # distri_d  <- compute_distri_x(grids$all_d,Model_solved_i$d,p)
-      # plot(grids$all_d,distri_d)
-      # distri_rr  <- compute_distri_x(grids$all_rr,Model_solved_i$rr,p)
-      # plot(grids$all_rr,distri_rr)
+      # -----------------------------------
+      p <- compute_uncond_distri(Model_solved_i$indicators_x,
+                                 Model_solved_i$Probas,1000)
+      distri_d  <- compute_distri_x(grids$all_d,Model_solved_i$d,p)
+      plot(grids$all_d,distri_d,type="l")
+      distri_rr  <- compute_distri_x(grids$all_rr,Model_solved_i$rr,p)
+      plot(grids$all_rr,distri_rr,type="l")
+      # -----------------------------------
       
       strat_i <- run_strategy(Model_solved_i,maxH=10)
       

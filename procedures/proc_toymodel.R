@@ -36,6 +36,7 @@ solve_ToyModel_notRcpp <- function(Model,grids,nb_iter){
   s_star   <- Model$s_star
   RR       <- Model$RR
   sigma_eps <- Model$sigma_eps
+  sigma_nu  <- Model$sigma_nu
   
   # Compute stationary macro distribution:
   Omega_2h <- t(Omega)
@@ -395,7 +396,9 @@ compute_distance <- function(param,targets,Model_ini){
                            .1*(avg_Pi - targets$target_avg_Pi)^2 +
                            .1*(avg_Dy - targets$target_avg_Dy)^2 +
                            .0 * (Std_nom_yds[10]  - targets$target_std_10_nom)^2 +
-                           .2 * (Std_real_yds[10] - targets$target_std_10_rea)^2)
+                           .2 * (Std_real_yds[10] - targets$target_std_10_rea)^2 +
+                           1000 * (avg_nom_yds[10] - avg_real_yds[10] -
+                                   avg_Pi - targets$IRP10)^2)
   
   # Add penalty when yield curves are not monotonously increasing:
   distance <- distance + 10000*(avg_nom_yds[2]<avg_nom_yds[1])*(avg_nom_yds[1]-avg_nom_yds[2])
@@ -774,7 +777,7 @@ make_grid <- function(nb_grid,min_d=0,max_d,min_rr=0,max_rr,
 
 
 compute_determ_steady_state <- function(Model,
-                                        indic_d_bar_from_s_star = 0,
+                                        indic_d_bar_from_s_star = 1,
                                         d_bar = .8){
   
   # Compute average growth and inflation:
@@ -800,7 +803,7 @@ compute_determ_steady_state <- function(Model,
   s_star <- Model$s_star
   beta   <- Model$beta
   
-  if(indic_d_bar_from_s_star == 0){
+  if(indic_d_bar_from_s_star == 1){
     d_bar <- - s_star/(1 + beta - zeta_bar * (1 + q_bar))
   }else{
     s_star <- - d_bar * (1 + beta - zeta_bar * (1 + q_bar))
