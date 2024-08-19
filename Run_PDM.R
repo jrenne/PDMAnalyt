@@ -12,7 +12,7 @@ grids <- make_grid(nb_grid = nb_grid,
                    max_d = 1.6,
                    min_rr=.0,
                    max_rr=.15,
-                   sigma_eps = .03,
+                   sigma_eps = Model$sigma_eps,
                    all_quantiles_eps = c(-2,-1,1,2))
 
 values_of_chi      <- c(.8)

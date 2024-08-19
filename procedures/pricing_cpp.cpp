@@ -480,50 +480,94 @@ Rcpp::List compute_SDF(const Rcpp::List Model){
 // [[Rcpp::export]]
 Rcpp::List compute_SDF_D(const Rcpp::List Model,
                          const Eigen::MatrixXd mu_u_bar,
-                         const Eigen::MatrixXd mu_c,
                          const Eigen::MatrixXd indicators_x,
                          const Eigen::MatrixXd all_proba_def,
                          const Eigen::MatrixXd Probas){
   
-  // Note: The dimensions of mu_u and mu_c must be
-  //       that of the complete state vector.
+  // Note: The dimensions of mu_u_bar is mx1.
   
+  int nb_m         = mu_u_bar.rows() ;
   int nb_states    = indicators_x.rows() ;
   int nb_states_p1 = indicators_x.cols() ;
+  int nb_states_not_m = nb_states / nb_m ;
   
-  Eigen::MatrixXd vec1 = Eigen::MatrixXd::Constant(nb_states_p1,1,1) ;
-  Eigen::MatrixXd aux  = Eigen::MatrixXd::Constant(nb_states,nb_states_p1,1) ;
-  Eigen::MatrixXd aux2 = Eigen::MatrixXd::Constant(nb_states,nb_states_p1,1) ;
-  Eigen::MatrixXd E    = Eigen::MatrixXd::Constant(nb_states,1,1) ;
-  Eigen::MatrixXd logE = Eigen::MatrixXd::Constant(nb_states,1,1) ;
-  Eigen::MatrixXd mu_u = Eigen::MatrixXd::Constant(nb_states,1,1) ;
-
-  double gamma     = Model("gamma") ;
-  double delta     = Model("delta") ;
-  double nu_y      = Model("nu_y") ;
+  Eigen::MatrixXd vec1       = Eigen::MatrixXd::Constant(nb_states_p1,1,1) ;
+  Eigen::MatrixXd vec1_not_m = Eigen::MatrixXd::Constant(nb_states_not_m,1,1) ;
+  Eigen::MatrixXd aux  = Eigen::MatrixXd::Zero(nb_states,nb_states_p1) ;
+  Eigen::MatrixXd aux2 = Eigen::MatrixXd::Zero(nb_states,nb_states_p1) ;
+  Eigen::MatrixXd E    = Eigen::MatrixXd::Zero(nb_states,1) ;
+  Eigen::MatrixXd logE = Eigen::MatrixXd::Zero(nb_states,1) ;
+  Eigen::MatrixXd Mu_u_bar = Eigen::MatrixXd::Zero(nb_states,1) ;
+  Eigen::MatrixXd Mu_u     = Eigen::MatrixXd::Zero(nb_states,1) ;
+  Eigen::MatrixXd mu_f0    = Eigen::MatrixXd::Zero(nb_states,1) ;
+  Eigen::MatrixXd mu_f1    = Eigen::MatrixXd::Zero(nb_states,1) ;
+  Eigen::MatrixXd mu_f2    = Eigen::MatrixXd::Zero(nb_states,1) ;
+  Eigen::MatrixXd mu_f1_real = Eigen::MatrixXd::Zero(nb_states,1) ;
+  Eigen::MatrixXd mu_f2_real = Eigen::MatrixXd::Zero(nb_states,1) ;
+  Eigen::MatrixXd mu_f1_nominal = Eigen::MatrixXd::Zero(nb_states,1) ;
+  Eigen::MatrixXd mu_f2_nominal = Eigen::MatrixXd::Zero(nb_states,1) ;
+  
+  Mu_u_bar = kronecker_cpp(mu_u_bar,vec1_not_m) ;
+  
+  Eigen::MatrixXd mu_y  = Model("mu_y") ;
+  Eigen::MatrixXd mu_pi = Model("mu_pi") ;
+  Eigen::MatrixXd Mu_y = kronecker_cpp(mu_y,vec1_not_m) ;
+  
+  double gamma = Model("gamma") ;
+  double delta = Model("delta") ;
+  double nu_y  = Model("nu_y") ;
+  double nu_pi = Model("nu_pi") ;
+  double kappa_y  = Model("kappa_y") ;
+  double kappa_pi = Model("kappa_pi") ;
   
   double delta_gamma = delta/(1 - gamma) ;
-
-  mu_u = mu_u_bar ; // initialization
-
+  double gamma_delta = (1 - gamma)/delta ;
+  double log_delta   = log(delta) ;
+  
+  Mu_u = Mu_u_bar ; // initialization
+  
   for (int j = 0; j < 10; j++){
-    aux = fill_from_indic(indicators_x, mu_u + mu_c) ;
+    aux = fill_from_indic(indicators_x, Mu_u + Mu_y) ;
     aux = mult(aux, 1 - gamma) ;
     aux = (aux.array()).exp() ;
+    aux = aux.array() * Probas.array() ;
     
-    aux2 = fill_from_indic(indicators_x, mu_u_bar - mu_u) ;
+    E = aux * vec1;
+    
+    aux2 = fill_from_indic(indicators_x, Mu_u_bar - Mu_u) ;
     aux2 = add(aux2,nu_y) ;
+    aux2 = mult(aux2,1 - gamma) ;
     aux2 = (aux2.array()).exp() ;
     aux2 = add(aux2,-1) ;
-    
-    E = aux * vec1 ;
     aux = (aux.array() * aux2.array()).array() * all_proba_def.array() ;
+    aux = aux.array() * aux2.array() ;
+    aux = aux.array() * all_proba_def.array() ;
+    
     E = E + aux * vec1 ;
-    logE = E.log() ;
-    mu_u = mult(logE,delta_gamma) ;
+    logE = (E.array()).log() ;
+    Mu_u = mult(logE,delta_gamma) ;
   }
   
-  return List::create(Named("mu_u") = mu_u) ;
+  // SDF parameterizations:
+  mu_f0 = add(mult(Mu_u,-gamma_delta),log_delta) ;
+  
+  mu_f1_real = mult(Mu_u,1 - gamma) - mult(Mu_y,gamma) ;
+  mu_f2_real = add(mult(Mu_u_bar - Mu_u,1 - gamma),- gamma * nu_y) ;
+  
+  mu_f1_nominal = mu_f1_real - mu_pi ;
+  mu_f2_nominal = add(mu_f2_real,- nu_pi) ;
+  
+  mu_f1 = mu_f1_nominal + mult(mu_pi,kappa_pi) + mult(mu_y,kappa_y) ;
+  mu_f2 = add(mu_f2_nominal,nu_pi*kappa_pi + nu_y*kappa_y) ;
+  
+  return List::create(Named("mu_u") = Mu_u,
+                      Named("mu_f0")         = mu_f0,
+                      Named("mu_f1")         = mu_f1,
+                      Named("mu_f1_real")    = mu_f1_real,
+                      Named("mu_f1_nominal") = mu_f1_nominal,
+                      Named("mu_f2")         = mu_f1,
+                      Named("mu_f2_real")    = mu_f1_real,
+                      Named("mu_f2_nominal") = mu_f1_nominal) ;
 }
 
 
