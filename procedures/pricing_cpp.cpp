@@ -477,6 +477,56 @@ Rcpp::List compute_SDF(const Rcpp::List Model){
 }
 
 
+// [[Rcpp::export]]
+Rcpp::List compute_SDF_D(const Rcpp::List Model,
+                         const Eigen::MatrixXd mu_u_bar,
+                         const Eigen::MatrixXd mu_c,
+                         const Eigen::MatrixXd indicators_x,
+                         const Eigen::MatrixXd all_proba_def,
+                         const Eigen::MatrixXd Probas){
+  
+  // Note: The dimensions of mu_u and mu_c must be
+  //       that of the complete state vector.
+  
+  int nb_states    = indicators_x.rows() ;
+  int nb_states_p1 = indicators_x.cols() ;
+  
+  Eigen::MatrixXd vec1 = Eigen::MatrixXd::Constant(nb_states_p1,1,1) ;
+  Eigen::MatrixXd aux  = Eigen::MatrixXd::Constant(nb_states,nb_states_p1,1) ;
+  Eigen::MatrixXd aux2 = Eigen::MatrixXd::Constant(nb_states,nb_states_p1,1) ;
+  Eigen::MatrixXd E    = Eigen::MatrixXd::Constant(nb_states,1,1) ;
+  Eigen::MatrixXd logE = Eigen::MatrixXd::Constant(nb_states,1,1) ;
+  Eigen::MatrixXd mu_u = Eigen::MatrixXd::Constant(nb_states,1,1) ;
+
+  double gamma     = Model("gamma") ;
+  double delta     = Model("delta") ;
+  double nu_y      = Model("nu_y") ;
+  
+  double delta_gamma = delta/(1 - gamma) ;
+
+  mu_u = mu_u_bar ; // initialization
+
+  for (int j = 0; j < 10; j++){
+    aux = fill_from_indic(indicators_x, mu_u + mu_c) ;
+    aux = mult(aux, 1 - gamma) ;
+    aux = (aux.array()).exp() ;
+    
+    aux2 = fill_from_indic(indicators_x, mu_u_bar - mu_u) ;
+    aux2 = add(aux2,nu_y) ;
+    aux2 = (aux2.array()).exp() ;
+    aux2 = add(aux2,-1) ;
+    
+    E = aux * vec1 ;
+    aux = (aux.array() * aux2.array()).array() * all_proba_def.array() ;
+    E = E + aux * vec1 ;
+    logE = E.log() ;
+    mu_u = mult(logE,delta_gamma) ;
+  }
+  
+  return List::create(Named("mu_u") = mu_u) ;
+}
+
+
 
 // [[Rcpp::export]]
 Rcpp::List compute_LTRF_bond_prices(const Rcpp::List Model,
