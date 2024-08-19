@@ -2,6 +2,9 @@
 
 # Test new compute_sdf (with default events)
 
+Model$kappa_pi <- 0
+Model$kappa_y  <- 0
+
 grids <- make_grid(nb_grid = 21,
                    min_d = .5,
                    max_d = 1.6,
@@ -18,5 +21,12 @@ res_sdf <- compute_SDF_D(Model,
               mu_u_bar = res_sdf_noEvent$mu_u,
               Model_solved$indicators_x,
               Model_solved$all_proba_def,
-              Model_solved$Probas)
+              Model_solved$Probas,
+              nb_iter_sdf = 0)
+
+cbind(as.numeric(levels(as.factor(res_sdf$mu_u))),sort(res_sdf_noEvent$mu_u))
+cbind(as.numeric(levels(as.factor(res_sdf$mu_f0))),sort(res_sdf_noEvent$mu_f0))
+cbind(as.numeric(levels(as.factor(res_sdf$mu_f1_nominal))),
+      sort(res_sdf_noEvent$mu_f1_nominal))
+cbind(as.numeric(levels(as.factor(res_sdf$mu_f1))),sort(res_sdf_noEvent$mu_f1))
 

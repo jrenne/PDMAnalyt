@@ -482,7 +482,8 @@ Rcpp::List compute_SDF_D(const Rcpp::List Model,
                          const Eigen::MatrixXd mu_u_bar,
                          const Eigen::MatrixXd indicators_x,
                          const Eigen::MatrixXd all_proba_def,
-                         const Eigen::MatrixXd Probas){
+                         const Eigen::MatrixXd Probas,
+                         const int nb_iter_sdf){
   
   // Note: The dimensions of mu_u_bar is mx1.
   
@@ -511,7 +512,8 @@ Rcpp::List compute_SDF_D(const Rcpp::List Model,
   
   Eigen::MatrixXd mu_y  = Model("mu_y") ;
   Eigen::MatrixXd mu_pi = Model("mu_pi") ;
-  Eigen::MatrixXd Mu_y = kronecker_cpp(mu_y,vec1_not_m) ;
+  Eigen::MatrixXd Mu_y  = kronecker_cpp(mu_y,vec1_not_m) ;
+  Eigen::MatrixXd Mu_pi = kronecker_cpp(mu_pi,vec1_not_m) ;
   
   double gamma = Model("gamma") ;
   double delta = Model("delta") ;
@@ -526,26 +528,28 @@ Rcpp::List compute_SDF_D(const Rcpp::List Model,
   
   Mu_u = Mu_u_bar ; // initialization
   
-  for (int j = 0; j < 10; j++){
-    aux = fill_from_indic(indicators_x, Mu_u + Mu_y) ;
-    aux = mult(aux, 1 - gamma) ;
-    aux = (aux.array()).exp() ;
-    aux = aux.array() * Probas.array() ;
-    
-    E = aux * vec1;
-    
-    aux2 = fill_from_indic(indicators_x, Mu_u_bar - Mu_u) ;
-    aux2 = add(aux2,nu_y) ;
-    aux2 = mult(aux2,1 - gamma) ;
-    aux2 = (aux2.array()).exp() ;
-    aux2 = add(aux2,-1) ;
-    aux = (aux.array() * aux2.array()).array() * all_proba_def.array() ;
-    aux = aux.array() * aux2.array() ;
-    aux = aux.array() * all_proba_def.array() ;
-    
-    E = E + aux * vec1 ;
-    logE = (E.array()).log() ;
-    Mu_u = mult(logE,delta_gamma) ;
+  if(nb_iter_sdf>0){
+    for (int j = 0; j < nb_iter_sdf; j++){
+      aux = fill_from_indic(indicators_x, Mu_u + Mu_y) ;
+      aux = mult(aux, 1 - gamma) ;
+      aux = (aux.array()).exp() ;
+      aux = aux.array() * Probas.array() ;
+      
+      E = aux * vec1;
+      
+      aux2 = fill_from_indic(indicators_x, Mu_u_bar - Mu_u) ;
+      aux2 = add(aux2,nu_y) ;
+      aux2 = mult(aux2,1 - gamma) ;
+      aux2 = (aux2.array()).exp() ;
+      aux2 = add(aux2,-1) ;
+      aux = (aux.array() * aux2.array()).array() * all_proba_def.array() ;
+      aux = aux.array() * aux2.array() ;
+      aux = aux.array() * all_proba_def.array() ;
+      
+      E = E + aux * vec1 ;
+      logE = (E.array()).log() ;
+      Mu_u = mult(logE,delta_gamma) ;
+    }
   }
   
   // SDF parameterizations:
@@ -554,10 +558,10 @@ Rcpp::List compute_SDF_D(const Rcpp::List Model,
   mu_f1_real = mult(Mu_u,1 - gamma) - mult(Mu_y,gamma) ;
   mu_f2_real = add(mult(Mu_u_bar - Mu_u,1 - gamma),- gamma * nu_y) ;
   
-  mu_f1_nominal = mu_f1_real - mu_pi ;
+  mu_f1_nominal = mu_f1_real - Mu_pi ;
   mu_f2_nominal = add(mu_f2_real,- nu_pi) ;
   
-  mu_f1 = mu_f1_nominal + mult(mu_pi,kappa_pi) + mult(mu_y,kappa_y) ;
+  mu_f1 = mu_f1_nominal + mult(Mu_pi,kappa_pi) + mult(Mu_y,kappa_y) ;
   mu_f2 = add(mu_f2_nominal,nu_pi*kappa_pi + nu_y*kappa_y) ;
   
   return List::create(Named("mu_u") = Mu_u,
