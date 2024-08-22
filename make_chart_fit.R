@@ -22,10 +22,10 @@ nb_m <- dim(Model$Omega)[1] # number of macro regimes
 RES <- prepare_returns_yds(Model,maxH)
 
 plot(c(RES$avg_nominal_yds),type="l",ylim=c(0,.08))
-lines(c(RES$avg_TIPS_yds),col="red")
+lines(c(RES$avg_ILB_yds),col="red")
 
 plot(c(RES$avg_nominal_returns),type="l")
-lines(c(RES$avg_TIPS_returns),col="red")
+lines(c(RES$avg_ILB_returns),col="red")
 lines(c(RES$avg_GDPLB_returns),col="black",lty=2)
 
 
@@ -91,7 +91,7 @@ write(latex_table, paste("tables/",latex.file,sep=""))
 # ==============================================================================
 
 fitted_yds_nom  <- res_KH$ksi_matrix %*% RES$res_LTnominal_prices$all_LT_rth
-fitted_yds_real <- res_KH$ksi_matrix %*% RES$res_LTTIPS_prices$all_LT_rth
+fitted_yds_real <- res_KH$ksi_matrix %*% RES$res_LTILB_prices$all_LT_rth
 
 FILE = paste("figures/Figure_fit.pdf",sep="")
 pdf(file=FILE, pointsize=10, width=6, height=6)
@@ -147,11 +147,11 @@ polygon(c(1:maxH,rev(1:maxH)),c(lower_bound,rev(upper_bound)),border = NaN,
         col="#66AAAA44")
 lines(1:maxH,RES$avg_nominal_yds,col="blue",lwd=2)
 
-lower_bound <- RES$avg_TIPS_yds - 1.0 * RES$Std_TIPS_yds
-upper_bound <- RES$avg_TIPS_yds + 1.0 * RES$Std_TIPS_yds
+lower_bound <- RES$avg_ILB_yds - 1.0 * RES$Std_ILB_yds
+upper_bound <- RES$avg_ILB_yds + 1.0 * RES$Std_ILB_yds
 polygon(c(1:maxH,rev(1:maxH)),c(lower_bound,rev(upper_bound)),border = NaN,
         col="#AA66AA44")
-lines(1:maxH,RES$avg_TIPS_yds,col="red",lwd=2)
+lines(1:maxH,RES$avg_ILB_yds,col="red",lwd=2)
 
 grid()
 
@@ -181,7 +181,7 @@ lines(1:maxH,c(RES$avg_annual_nominal_returns),col="blue",lwd=2)
 # upper_bound <- avg_real_yds + 1.0 * Std_real_yds
 # polygon(c(1:maxH,rev(1:maxH)),c(lower_bound,rev(upper_bound)),border = NaN,
 #         col="#AA66AA44")
-lines(1:maxH,RES$avg_annual_TIPS_returns,col="red",lwd=2)
+lines(1:maxH,RES$avg_annual_ILB_returns,col="red",lwd=2)
 
 lower_bound <- RES$avg_annual_GDPLB_returns - 1.0 * RES$Std_annual_GDPLB_returns
 upper_bound <- RES$avg_annual_GDPLB_returns + 1.0 * RES$Std_annual_GDPLB_returns

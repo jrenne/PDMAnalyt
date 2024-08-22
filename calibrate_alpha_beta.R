@@ -4,6 +4,7 @@
 
 nb_grid <- 25 # number of values per state variable
 Model$sigma_eps <- .03
+nb_iter_sdf <- 10 # to solve SDF
 
 grids <- make_grid(nb_grid = 23,
                    min_d = .5,
@@ -64,19 +65,24 @@ for(alpha in candidate_alpha_values){
       Model$s_star <- res_aux$s_star
       
       # Solve model:
-      Model_solved <- solve_ToyModel(Model,grids,nb_iter = nb_iter)
+      Model_solved <- solve_ToyModel(Model,grids,
+                                     nb_iter = nb_iter,
+                                     nb_iter_sdf = nb_iter_sdf)
       
       # Compute average of debt:
-      p <- compute_uncond_distri(Model_solved$indicators_x,Model_solved$Probas,1000)
+      p <- compute_uncond_distri(Model_solved$indicators_x,
+                                 Model_solved$Probas,1000)
       distri_d <- compute_distri_x(grids$all_d,Model_solved$d,p)
       mean_d   <- sum(distri_d * grids$all_d)
       
       # Compute nominal yields:
-      res_prices_nominal <- compute_bond_prices(Model_solved, maxH)
+      res_prices_nominal <- compute_bond_prices(Model_solved, maxH,
+                                                nb_iter_sdf = nb_iter_sdf)
       # Compute risk-free nominal yields:
       Model_solved_RF          <- Model_solved
       Model_solved_RF$Model$RR <- 1
-      res_prices_nominal_RF <- compute_bond_prices(Model_solved_RF, maxH)
+      res_prices_nominal_RF <- compute_bond_prices(Model_solved_RF, maxH,
+                                                   nb_iter_sdf = nb_iter_sdf)
       
       spreads <- res_prices_nominal$all_rth - res_prices_nominal_RF$all_rth
       
@@ -88,7 +94,7 @@ for(alpha in candidate_alpha_values){
       stdv_d_in_percent <- sqrt(var_d) * 100
       
       distance <- (spread_in_bps - Targets$spread_in_bps)^2 +
-        (mean_d_in_percent - Targets$mean_d_in_percent)^2 +
+        #(mean_d_in_percent - Targets$mean_d_in_percent)^2 +
         (stdv_d_in_percent - Targets$stdv_d_in_percent)^2
       
       print("------------------------------")

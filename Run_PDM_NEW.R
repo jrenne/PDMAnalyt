@@ -1,5 +1,5 @@
 
-nb_grid <- 23 # number of values per state variable
+nb_grid <- 25 # number of values per state variable
 nb_iter <- 30 # to solve model
 nb_iter_sdf <- 10 # to solve SDF
 
@@ -17,9 +17,9 @@ grids <- make_grid(nb_grid = nb_grid,
                    sigma_eps = Model$sigma_eps,
                    all_quantiles_eps = c(-2,-1,1,2))
 
-values_of_chi      <- c(.8)
+values_of_chi      <- c(.2,.6,.9)
 values_of_kappa_pi <- seq(0,1,by=.25)
-values_of_kappa_y  <- c(0)
+values_of_kappa_y  <- c(0,.1,.2)
 
 M <- NULL
 parameters <- NULL
@@ -73,9 +73,14 @@ for(chi in values_of_chi){
 colnames(parameters) <- c("chi","kappa_pi","kappa_y")
 colnames(M)          <- outputs
 
+
+plot(M[,"mean_d"],M[,"stdv_d"])
+plot(M[,"mean_rr"],M[,"avg_PD[maxH]"])
+plot(M[,"mean_rr"],M[,"DaR95"])
+
 plot(M[(parameters[,"kappa_y"]==0),"mean_d"],M[(parameters[,"kappa_y"]==0),"stdv_d"])
-plot(M[(parameters[,"kappa_y"]==0)&(parameters[,"chi"]==0.8),"mean_rr"],
-     M[(parameters[,"kappa_y"]==0)&(parameters[,"chi"]==0.8),"avg_PD[maxH]"])
+plot(M[(parameters[,"kappa_y"]==0)&(parameters[,"chi"]==0.9),"mean_rr"],
+     M[(parameters[,"kappa_y"]==0)&(parameters[,"chi"]==0.9),"avg_PD[maxH]"])
 
 
 

@@ -146,6 +146,7 @@ Model <- make_model(param,Model_ini)
 #save(Model,file="results/res_13082024.Rdat")
 #save(Model,file="results/res_14082024.Rdat")
 #save(Model,file="results/res_16082024.Rdat")
+#save(Model,file="results/res_22082024.Rdat")
 
 #load(file="results/res_16082024.Rdat")
 
