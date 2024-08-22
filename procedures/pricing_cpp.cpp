@@ -500,13 +500,13 @@ Rcpp::List compute_SDF_D(const Rcpp::List Model,
   Eigen::MatrixXd logE = Eigen::MatrixXd::Zero(nb_states,1) ;
   Eigen::MatrixXd Mu_u_bar = Eigen::MatrixXd::Zero(nb_states,1) ;
   Eigen::MatrixXd Mu_u     = Eigen::MatrixXd::Zero(nb_states,1) ;
-  Eigen::MatrixXd mu_f0    = Eigen::MatrixXd::Zero(nb_states,1) ;
-  Eigen::MatrixXd mu_f1    = Eigen::MatrixXd::Zero(nb_states,1) ;
-  Eigen::MatrixXd mu_f2    = Eigen::MatrixXd::Zero(nb_states,1) ;
-  Eigen::MatrixXd mu_f1_real = Eigen::MatrixXd::Zero(nb_states,1) ;
-  Eigen::MatrixXd mu_f2_real = Eigen::MatrixXd::Zero(nb_states,1) ;
-  Eigen::MatrixXd mu_f1_nominal = Eigen::MatrixXd::Zero(nb_states,1) ;
-  Eigen::MatrixXd mu_f2_nominal = Eigen::MatrixXd::Zero(nb_states,1) ;
+  Eigen::MatrixXd Mu_f0    = Eigen::MatrixXd::Zero(nb_states,1) ;
+  Eigen::MatrixXd Mu_f1    = Eigen::MatrixXd::Zero(nb_states,1) ;
+  Eigen::MatrixXd Mu_nu    = Eigen::MatrixXd::Zero(nb_states,1) ;
+  Eigen::MatrixXd Mu_f1_real = Eigen::MatrixXd::Zero(nb_states,1) ;
+  Eigen::MatrixXd Mu_nu_real = Eigen::MatrixXd::Zero(nb_states,1) ;
+  Eigen::MatrixXd Mu_f1_nominal = Eigen::MatrixXd::Zero(nb_states,1) ;
+  Eigen::MatrixXd Mu_nu_nominal = Eigen::MatrixXd::Zero(nb_states,1) ;
   
   Mu_u_bar = kronecker_cpp(mu_u_bar,vec1_not_m) ;
   
@@ -528,7 +528,8 @@ Rcpp::List compute_SDF_D(const Rcpp::List Model,
   
   Mu_u = Mu_u_bar ; // initialization
   
-  if(nb_iter_sdf>0){
+  if((nb_iter_sdf>0)&(nu_y!=0)){
+    // no need for this loop if no credit-event pricing (nu_y == 0)
     for (int j = 0; j < nb_iter_sdf; j++){
       aux = fill_from_indic(indicators_x, Mu_u + Mu_y) ;
       aux = mult(aux, 1 - gamma) ;
@@ -553,25 +554,25 @@ Rcpp::List compute_SDF_D(const Rcpp::List Model,
   }
   
   // SDF parameterizations:
-  mu_f0 = add(mult(Mu_u,-gamma_delta),log_delta) ;
+  Mu_f0 = add(mult(Mu_u,-gamma_delta),log_delta) ;
   
-  mu_f1_real = mult(Mu_u,1 - gamma) - mult(Mu_y,gamma) ;
-  mu_f2_real = add(mult(Mu_u_bar - Mu_u,1 - gamma),- gamma * nu_y) ;
+  Mu_f1_real = mult(Mu_u,1 - gamma) - mult(Mu_y,gamma) ;
+  Mu_nu_real = add(mult(Mu_u_bar - Mu_u,1 - gamma),- gamma * nu_y) ;
   
-  mu_f1_nominal = mu_f1_real - Mu_pi ;
-  mu_f2_nominal = add(mu_f2_real,- nu_pi) ;
+  Mu_f1_nominal = Mu_f1_real - Mu_pi ;
+  Mu_nu_nominal = add(Mu_nu_real,- nu_pi) ;
   
-  mu_f1 = mu_f1_nominal + mult(Mu_pi,kappa_pi) + mult(Mu_y,kappa_y) ;
-  mu_f2 = add(mu_f2_nominal,nu_pi*kappa_pi + nu_y*kappa_y) ;
+  Mu_f1 = Mu_f1_nominal + mult(Mu_pi,kappa_pi) + mult(Mu_y,kappa_y) ;
+  Mu_nu = add(Mu_nu_nominal,nu_pi*kappa_pi + nu_y*kappa_y) ;
   
-  return List::create(Named("mu_u") = Mu_u,
-                      Named("mu_f0")         = mu_f0,
-                      Named("mu_f1")         = mu_f1,
-                      Named("mu_f1_real")    = mu_f1_real,
-                      Named("mu_f1_nominal") = mu_f1_nominal,
-                      Named("mu_f2")         = mu_f1,
-                      Named("mu_f2_real")    = mu_f1_real,
-                      Named("mu_f2_nominal") = mu_f1_nominal) ;
+  return List::create(Named("Mu_u")          = Mu_u,
+                      Named("Mu_f0")         = Mu_f0,
+                      Named("Mu_f1")         = Mu_f1,
+                      Named("Mu_f1_real")    = Mu_f1_real,
+                      Named("Mu_f1_nominal") = Mu_f1_nominal,
+                      Named("Mu_nu")         = Mu_nu,
+                      Named("Mu_nu_real")    = Mu_nu_real,
+                      Named("Mu_nu_nominal") = Mu_nu_nominal) ;
 }
 
 
@@ -662,7 +663,8 @@ Rcpp::List compute_LTRF_bond_prices(const Rcpp::List Model,
 
 // [[Rcpp::export]]
 Rcpp::List compute_bond_prices(const Rcpp::List Model_solved,
-                               const int maxH){
+                               const int maxH,
+                               const int nb_iter_sdf){
   
   Rcpp::List Model = Model_solved("Model") ;
   
@@ -679,15 +681,8 @@ Rcpp::List compute_bond_prices(const Rcpp::List Model_solved,
   int nb_not_macro = 1.0 * nb_states / nb_m ; // number of regimes -- excluding macro regimes
   int nb_eps       = 1.0 * nb_eps_m / nb_m ;
   
-  // compute nu associated with appropriate kappa's:
   double RR       = Model("RR") ;
-  double gamma    = Model("gamma") ;
-  double kappa_pi = Model("kappa_pi") ;
-  double kappa_y  = Model("kappa_y") ;
-  double nu_pi    = Model("nu_pi") ;
-  double nu_y     = Model("nu_y") ;
-  double nu = - gamma * nu_y + (kappa_pi - 1) * nu_pi + kappa_y * nu_y ;
-  
+
   Eigen::MatrixXd vec_1_x     = Eigen::MatrixXd::Constant(nb_states,1,1) ;
   Eigen::MatrixXd vec_1_eps   = Eigen::MatrixXd::Constant(nb_eps,1,1) ;
   Eigen::MatrixXd vec_1_m_eps = Eigen::MatrixXd::Constant(nb_eps * nb_m,1,1) ;
@@ -716,20 +711,28 @@ Rcpp::List compute_bond_prices(const Rcpp::List Model_solved,
   Eigen::MatrixXd B_bar_th_1       = Eigen::MatrixXd::Ones(nb_states,1) ;
   
   // s.d.f. specification (associated with composite index)
-  Rcpp::List res_SDF = compute_SDF(Model) ;
-  Eigen::MatrixXd mu_f0 = res_SDF("mu_f0") ;
-  Eigen::MatrixXd mu_f1 = res_SDF("mu_f1") ;
+  Rcpp::List res_SDF_noD = compute_SDF(Model) ;
+  Eigen::MatrixXd mu_u_bar = res_SDF_noD("mu_u") ;
+  Rcpp::List res_SDF = compute_SDF_D(Model,
+                                     mu_u_bar,
+                                     indicators_x,
+                                     all_proba_def,
+                                     Probas,
+                                     nb_iter_sdf) ;
+  Eigen::MatrixXd Mu_f0 = res_SDF("Mu_f0") ;
+  Eigen::MatrixXd Mu_f1 = res_SDF("Mu_f1") ;
+  Eigen::MatrixXd Mu_nu = res_SDF("Mu_nu") ;
   
   Eigen::MatrixXd all_f_tp1 = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
-  all_f_tp1 = vec_1_x * kronecker_cpp(mu_f1.transpose(), vec_1_eps.transpose()) +
-    kronecker_cpp(mu_f0, vec_1_ddrr) * vec_1_m_eps.transpose() ;
   
+  all_f_tp1 = fill_from_indic(indicators_x,Mu_f1) + Mu_f0 * vec_1_m_eps.transpose() ;
   Eigen::MatrixXd all_exp_f_tp1     = Eigen::MatrixXd::Zero(nb_states,nb_eps * nb_m) ;
-  Eigen::MatrixXd all_exp_f_tp1_nu  = Eigen::MatrixXd::Zero(nb_states,nb_eps * nb_m) ;
-  all_exp_f_tp1    = (all_f_tp1.array()).exp() ;
+  all_exp_f_tp1 = (all_f_tp1.array()).exp() ;
   
-  double RR_nu = RR * exp(nu) ;
-  
+  Eigen::MatrixXd exp_Munu_ztp1 = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
+  exp_Munu_ztp1 = fill_from_indic(indicators_x,Mu_nu) ;
+  exp_Munu_ztp1 = (exp_Munu_ztp1.array()).exp() ;
+
   for (int h = 0; h < maxH; h++){
     all_p_h_1_tp1 = fill_from_indic(indicators_x, p_h_1) ;
     p_h_aux       =  all_p_h_1_tp1.array() + 
@@ -742,7 +745,7 @@ Rcpp::List compute_bond_prices(const Rcpp::List Model_solved,
     all_Bth_1_tp1    = fill_from_indic(indicators_x, Bth_1) ;
     all_Bbarth_1_tp1 = fill_from_indic(indicators_x, B_bar_th_1) ;
     
-    Bth_aux = (mult(all_Bbarth_1_tp1,RR_nu).array() - all_Bth_1_tp1.array()).array() * 
+    Bth_aux = (all_Bbarth_1_tp1.array() * mult(exp_Munu_ztp1,RR).array() - all_Bth_1_tp1.array()).array() * 
       all_proba_def.array() ;
     Bth_aux = all_exp_f_tp1.array() * Bth_aux.array() ;
     Bth_aux = all_exp_f_tp1.array() * all_Bth_1_tp1.array() + Bth_aux.array() ;
@@ -854,7 +857,8 @@ Rcpp::List compute_stat_distri_and_rbar(const Rcpp::List Model){
 // [[Rcpp::export]]
 Rcpp::List solve_ToyModel(const Rcpp::List Model,
                           const Rcpp::List grids,
-                          const int nb_iter
+                          const int nb_iter,
+                          const int nb_iter_sdf
 ){
   
   Eigen::MatrixXd all_d     = grids("all_d") ;
@@ -867,7 +871,6 @@ Rcpp::List solve_ToyModel(const Rcpp::List Model,
   Eigen::MatrixXd mu_y   = Model("mu_y") ;
   Eigen::MatrixXd mu_eta = Model("mu_eta") ;
   
-  double gamma    = Model("gamma") ;
   double chi      = Model("chi") ;
   double beta     = Model("beta") ;
   double d_star   = Model("d_star") ;
@@ -876,8 +879,6 @@ Rcpp::List solve_ToyModel(const Rcpp::List Model,
   double RR       = Model("RR") ;
   double kappa_pi = Model("kappa_pi") ;
   double kappa_y  = Model("kappa_y") ;
-  double nu_pi    = Model("nu_pi") ;
-  double nu_y     = Model("nu_y") ;
   double sigma_nu = Model("sigma_nu") ;
   
   int nb_grid_d  = all_d.rows() ;
@@ -933,13 +934,19 @@ Rcpp::List solve_ToyModel(const Rcpp::List Model,
   Eigen::MatrixXd stat_distri = compute_stat_distri(Model) ;
   
   // s.d.f. specification (associated with composite index)
+  
   Rcpp::List res_SDF = compute_SDF(Model) ;
-  Eigen::MatrixXd mu_f0 = res_SDF("mu_f0") ;
-  Eigen::MatrixXd mu_f1 = res_SDF("mu_f1") ;
+  Eigen::MatrixXd mu_f0    = res_SDF("mu_f0") ;
+  Eigen::MatrixXd mu_f1    = res_SDF("mu_f1") ;
+  Eigen::MatrixXd mu_u_bar = res_SDF("mu_u") ;
   
   expmuf0  = (mu_f0.array()).exp() ;
   expmuf1  = (mu_f1.array()).exp() ;
   expmuf01 = ((mu_f0 + mu_f1).array()).exp() ;
+  
+  Eigen::MatrixXd Mu_f0 = Eigen::MatrixXd::Zero(nb_states,1) ;
+  Eigen::MatrixXd Mu_f1 = Eigen::MatrixXd::Zero(nb_states,1) ;
+  Eigen::MatrixXd Mu_nu = Eigen::MatrixXd::Zero(nb_states,1) ;
   
   Dlast = expmuf1.asDiagonal() ;
   Dbetw = expmuf01.asDiagonal() ;
@@ -965,8 +972,6 @@ Rcpp::List solve_ToyModel(const Rcpp::List Model,
   Pi  = kronecker_cpp(kronecker_cpp(kronecker_cpp(mu_pi,  vec_1_rr),vec_1_d),vec_1_d) ;
   Dy  = kronecker_cpp(kronecker_cpp(kronecker_cpp(mu_y,   vec_1_rr),vec_1_d),vec_1_d) ;
   s_m = kronecker_cpp(kronecker_cpp(kronecker_cpp(mu_eta, vec_1_rr),vec_1_d),vec_1_d) ;
-  
-  double nu = - gamma * nu_y + (kappa_pi - 1) * nu_pi + kappa_y * nu_y ;
   
   Eigen::MatrixXd all_eps_tp1 = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
   Eigen::MatrixXd all_Pi_tp1  = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
@@ -1001,7 +1006,7 @@ Rcpp::List solve_ToyModel(const Rcpp::List Model,
   q  = kronecker_cpp(kronecker_cpp(kronecker_cpp(add(rstar,.001), vec_1_rr),vec_1_d),vec_1_d) ;
   q0 = kronecker_cpp(kronecker_cpp(kronecker_cpp(add(rstar,.000), vec_1_rr),vec_1_d),vec_1_d) ;
   
-  Eigen::MatrixXd AUX = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
+  Eigen::MatrixXd exp_Munu_ztp1 = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
   
   all_d_t   = d   * vec_1_m_eps.transpose() ;
   all_d_t_1 = d_1 * vec_1_m_eps.transpose() ;
@@ -1033,6 +1038,9 @@ Rcpp::List solve_ToyModel(const Rcpp::List Model,
   
   indicators_d_t   = kronecker_cpp(vec_1_drm,seq1d) * vec_1_m_eps.transpose() ;
   indicators_m_tp1 = vec_1_x * kronecker_cpp(seq1m.transpose(),vec_1_eps.transpose()) ;
+  
+  // all_proba_def = add(- ((mult(all_lambdas,-alpha)).array()).exp(),1) ;
+  all_proba_def = ShadowInt_PD(add(- all_d_t,d_star),alpha,sigma_nu) ;
   
   if(nb_iter>0){
     
@@ -1071,22 +1079,28 @@ Rcpp::List solve_ToyModel(const Rcpp::List Model,
         mult(indicators_rr_tp1 - Mat_1,nb_grid_d*nb_grid_d).array() +
         mult(indicators_m_tp1 - Mat_1,nb_grid_d*nb_grid_d*nb_grid_rr).array() ;
       
-      // Compute probabilities of default:
-      // all_lambdas = pmax_cpp(
-      //   add(mult(add(all_d_t, - d_star),beta).array() + all_eta_tp1.array(), - s_star),0) ;
-      // all_lambdas = pmax_cpp(add( - all_d_t, d_star),0) ;
-      
-      // all_proba_def = add(- ((mult(all_lambdas,-alpha)).array()).exp(),1) ;
-      all_proba_def = ShadowInt_PD(add(- all_d_t,d_star),alpha,sigma_nu) ;
-      
       // Update q (sovereign yields):
       all_q_tp1 = fill_from_indic(indicators_x, q) ;
       
-      AUX = add(all_q_tp1,1).array() * (add(all_q_tp1,1 - chi).cwiseInverse()).array() ;
+      // Compute s.d.f.:
+      Rcpp::List res_SDF_withD = compute_SDF_D(Model,
+                                               mu_u_bar,
+                                               indicators_x,
+                                               all_proba_def,
+                                               Probas,
+                                               nb_iter_sdf) ;
+      Mu_f0    = res_SDF_withD("Mu_f0") ;
+      Mu_f1    = res_SDF_withD("Mu_f1") ;
+      Mu_nu    = res_SDF_withD("Mu_nu") ;
       
+      all_f_tp1 = fill_from_indic(indicators_x,Mu_f1) + Mu_f0 * vec_1_m_eps.transpose() ;
+
+      exp_Munu_ztp1 = fill_from_indic(indicators_x,Mu_nu) ;
+      exp_Munu_ztp1 = (exp_Munu_ztp1.array()).exp() ;
+
       E = ((all_f_tp1.array()).exp()).array() * (
         add(all_q_tp1,1).array() * (add(all_q_tp1,1 - chi).cwiseInverse()).array() +
-          all_proba_def.array() * (mult(all_OnepChiPstar,exp(nu)*RR).array() -
+          all_proba_def.array() * (mult(exp_Munu_ztp1,RR).array() * all_OnepChiPstar.array() -
           add(all_q_tp1,1).array() * (add(all_q_tp1,1 - chi).cwiseInverse()).array()).array()
       ).array() ;
       
@@ -1098,12 +1112,15 @@ Rcpp::List solve_ToyModel(const Rcpp::List Model,
       
       E = ((all_f_tp1.array()).exp()).array() * (
         add(all_q0_tp1,1).array() * (add(all_q0_tp1,1 - chi).cwiseInverse()).array() +
-          all_proba_def.array() * (mult(all_OnepChiPstar,exp(nu)).array() -
+          all_proba_def.array() * (exp_Munu_ztp1.array() * all_OnepChiPstar.array() -
           add(all_q0_tp1,1).array() * (add(all_q0_tp1,1 - chi).cwiseInverse()).array()).array()
       ).array() ;
       
-      Q = add(E.cwiseInverse(),chi - 1).array() * Probas.array() ;
-      q0 = Q * vec_1_m_eps ; // update q0
+      Q = E.array() * Probas.array() ;
+      q0 = add((Q * vec_1_m_eps).cwiseInverse(),chi - 1) ; // update q
+      
+      // Q = add(E.cwiseInverse(),chi - 1).array() * Probas.array() ;
+      // q0 = Q * vec_1_m_eps ; // update q0
       
       q_chge = q - q_iter_1 ;
       q_iter_1 = q; // for next iteration
@@ -1118,17 +1135,17 @@ Rcpp::List solve_ToyModel(const Rcpp::List Model,
                       Named("Dy") = Dy,
                       Named("q_chge") = q_chge,
                       Named("indicators_x") = indicators_x,
-                      Named("mu_f0") = mu_f0,
-                      Named("mu_f1") = mu_f1,
-                      Named("nu")   = nu,
+                      Named("Mu_f0") = Mu_f0,
+                      Named("Mu_f1") = Mu_f1,
+                      Named("Mu_nu") = Mu_nu,
                       Named("all_proba_def") = all_proba_def,
                       Named("Probas") = Probas,
-                      Named("stat_distri") = stat_distri,
                       Named("Pstar") = Pstar,
                       Named("rstar") = rstar,
                       Named("Model") = Model,
                       Named("all_d") = all_d,
-                      Named("all_rr") = all_rr
+                      Named("all_rr") = all_rr,
+                      Named("stat_distri") = stat_distri
   ) ;
 }
 

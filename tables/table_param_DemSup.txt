@@ -12,6 +12,6 @@ Regime&\multicolumn{2}{c}{$\mu_\pi$}&&$\mu_y$&&\multicolumn{3}{c}{$\Omega$}\\
 \hline
 \end{tabular*}
 \begin{footnotesize}
-\parbox{\linewidth}{\textit{Notes}: This table shows the parameterizations of the stylized demand/supply models. We also have $\alpha=0.10$, $\beta=0.10$, $\gamma=10$, $\beta=0.10$, $d^*=1.00$, $s^*=-0.08$, $\sigma_\nu=0.10$, $RR=0.50$.}
+\parbox{\linewidth}{\textit{Notes}: This table shows the parameterizations of the stylized demand/supply models. We also have $\alpha=0.10$, $\beta=0.10$, $\gamma=10$, $\beta=0.10$, $d^*=1.00$, $s^*=-0.08$, $\sigma_\nu=0.10$, $\nu_y=-0.00$, $\nu_\pi=0.00$, $RR=0.50$.}
 \end{footnotesize}
 \end{table}

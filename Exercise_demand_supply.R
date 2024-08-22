@@ -2,11 +2,21 @@
 # This script runs the demand/supply exercise
 # ==============================================================================
 
-elasticitiy_of_surpluses <- 0
+# prepare additional figure showing effect of credit risk on nominal yields:
+indic_addit_figure <- 0
 
+# ==============================================================================
+# ==============================================================================
+elasticity_of_surpluses <- 1
+#abs_nu_y <- .1
+abs_nu_y <- 0
+# ==============================================================================
+# ==============================================================================
 
 maxH <- 10
 nb_iter <- 30 # to solve models
+nb_iter_sdf <- 10 # to solve SDF
+nb_grid <- 25
 
 # Create stylized models
 
@@ -61,18 +71,21 @@ Model <- list(mu_pi = mu_pi_demand,
               s_star = NaN,
               RR = .5,
               nu_pi = 0,
-              nu_y = 0,
+              nu_y = -.1,
               sigma_eps = .02,
               sigma_nu = .1,
               kappa_pi = 0,
               kappa_y = 0)
+# ==============================================================================
+Model$nu_y <- - abs_nu_y
+# ==============================================================================
 
 res_aux <- compute_determ_steady_state(Model,
                                        indic_d_bar_from_s_star=0,
                                        d_bar = .8)
 Model$s_star <- res_aux$s_star
 
-Model$mu_eta <- elasticitiy_of_surpluses * Model$mu_y
+Model$mu_eta <- elasticity_of_surpluses * Model$mu_y
 
 Model_Demand <- Model
 Model_Demand$mu_pi <- mu_pi_demand
@@ -145,7 +158,9 @@ latex_table <- rbind(latex_table,
                            "$d^*=",make.entry(Model$d_star,format.nb = format.nb2,dollar=0),"$, ",
                            "$s^*=",make.entry(Model$s_star,format.nb = format.nb2,dollar=0),"$, ",
                            "$\\sigma_\\nu=",make.entry(Model$sigma_nu,format.nb = format.nb2,dollar=0),"$, ",
-                           # "$\\mu_\\eta=",elasticitiy_of_surpluses,"\\mu_y$",
+                           # "$\\mu_\\eta=",elasticity_of_surpluses,"\\times \\mu_y$",
+                           "$\\nu_y=",make.entry(Model$nu_y,format.nb = format.nb2,dollar=0),"$, ",
+                           "$\\nu_\\pi=",make.entry(Model$nu_pi,format.nb = format.nb2,dollar=0),"$, ",
                            "$RR=",make.entry(Model$RR,format.nb = format.nb2,dollar=0),"$.}",
                            sep=""),
                      "\\end{footnotesize}",
@@ -161,7 +176,7 @@ write(latex_table, paste("tables/",latex.file,sep=""))
 
 
 # ------------------------------------------------------------------------------
-# Preapre plot showing average yield curves in the two models
+# Prepare plot showing average yield curves in the two models
 # ------------------------------------------------------------------------------
 
 
@@ -187,22 +202,37 @@ for(regime in c("Demand","Supply")){
           col="#66AAAA44")
   lines(1:maxH,c(RES$avg_annual_nominal_returns),col="blue",lwd=2)
   
-  lines(1:maxH,RES$avg_annual_TIPS_returns,col="red",lwd=2)
+  lines(1:maxH,RES$avg_annual_ILB_returns,col="red",lwd=2)
   
   lower_bound <- RES$avg_annual_GDPLB_returns - 1.0 * RES$Std_annual_GDPLB_returns
   upper_bound <- RES$avg_annual_GDPLB_returns + 1.0 * RES$Std_annual_GDPLB_returns
   polygon(c(1:maxH,rev(1:maxH)),c(lower_bound,rev(upper_bound)),border = NaN,
           col="#AAAAAA44")
-  lines(1:maxH,RES$avg_annual_GDPLB_returns,col="black",lwd=2,lty=2)
+  lines(1:maxH,RES$avg_annual_GDPLB_returns,col="dark grey",lwd=2,lty=1)
   
+  # Add term structure of nominal yields with credit risk:
+  Model$nu_y <- 0 # to be sure
+  Model$kappa_pi <- 0 # issuance of nominal perpet.
+  Model$kappa_y  <- 0 # issuance of nominal perpet.
+  Model_solved <- solve_ToyModel(Model,
+                                 grids,nb_iter,
+                                 nb_iter_sdf)
+  Model_solved$Model$kappa_pi <- 0 # consider nominal ZC bonds.
+  Model_solved$Model$kappa_y  <- 0 # consider nominal ZC bonds.
+  res_bond_prices <- compute_bond_prices(Model_solved,maxH=10,nb_iter_sdf)
+  p <- compute_uncond_distri(Model_solved$indicators_x,
+                             Model_solved$Probas,nb_iter = 2000)
+  avg_yds <- t(p) %*% res_bond_prices$all_rth
+  lines(1:maxH,c(avg_yds),col="blue",lwd=2,lty=2)
+
   grid()
   
   if(regime=="Supply"){
     legend("topright", # places a legend at the appropriate place c("Health","Defense"), # puts text in the legend
-           c("Nominal bonds","TIPS","GDP-LB"),
-           lty=c(1,1,2), # gives the legend appropriate symbols (lines)
-           lwd=c(2,2,2), # line width
-           col=c("blue","red","black"),
+           c("Nominal bonds (w/o credit risk)","ILB (w/o credit risk)","GDP-LB (w/o credit risk)","Nominal bonds, with credit risk"),
+           lty=c(1,1,1,2), # gives the legend appropriate symbols (lines)
+           lwd=c(2,2,2,2), # line width
+           col=c("blue","red","dark grey","blue"),
            bg="white",
            #pch=c(3,NaN,NaN),
            seg.len = 3,
@@ -223,7 +253,7 @@ dev.off()
 
 values_of_chi <- c(.2,.9)
 
-grids <- make_grid(nb_grid = 25,
+grids <- make_grid(nb_grid = nb_grid,
                    min_d = 0.2,
                    max_d = 1.6,
                    min_rr = 0,
@@ -231,8 +261,8 @@ grids <- make_grid(nb_grid = 25,
                    sigma_eps = Model$sigma_eps,
                    all_quantiles_eps = c(-2,-1,1,2))
 
-extensions       <- c("_nominal","_TIPS","_GDPLB")
-names_extensions <- c("Nominal","TIPS","GDP-LBs")
+extensions       <- c("_nominal","_ILB","_GDPLB")
+names_extensions <- c("Nominal","ILB","GDP-LB")
 
 outputs <- c("mean_d","stdv_d","DaR95","mean_rr","stdv_rr",
              "stdv_Delta_d","avg_PD[maxH]","avg_spreads[maxH]")
@@ -253,8 +283,14 @@ for(i in 1:length(latex.column.names)){
 }
 
 latex_table <- rbind("\\begin{table}[ph!]",
-                     paste("\\caption{Performances of debt issuance strategies in stylized versions of the model, $\\mu_\\eta=",elasticitiy_of_surpluses,"\\mu_y$}",sep=""),
-                     paste("\\label{tab:DemSup_elast",elasticitiy_of_surpluses,"}",sep=""),
+                     paste("\\caption{Performances of debt issuance strategies in stylized versions of the model, $\\mu_\\eta=",
+                           elasticity_of_surpluses,"\\times \\mu_y$ and ",
+                           "$\\nu_y = ",ifelse(abs_nu_y<0,"-",""),abs_nu_y,"$",
+                           "}",sep=""),
+                     paste("\\label{tab:DemSup_elast",
+                           elasticity_of_surpluses,
+                           "_nu",abs_nu_y,
+                           "}",sep=""),
                      paste("\\begin{tabular*}{\\textwidth}{l@{\\extracolsep{\\fill}}",columns,"}",sep=""),
                      "\\hline",
                      paste("&",column_names,"\\\\",sep=""),
@@ -278,20 +314,26 @@ for(chi in values_of_chi){
                          "\\hline")
     
     eval(parse(text = gsub(" ","",paste("Models <- prepare_and_solve_3(Model_",
-                                        regime,",grids,nb_iter)",sep=""))))
+                                        regime,",grids,nb_iter,nb_iter_sdf)",sep=""))))
     
-    strat_nominal <- run_strategy(Models$Model_solved_nominal,maxH)
-    strat_TIPS    <- run_strategy(Models$Model_solved_TIPS,maxH)
-    strat_GDPLB   <- run_strategy(Models$Model_solved_GDPLB,maxH)
+    strat_nominal <- run_strategy(Models$Model_solved_nominal,
+                                  maxH,
+                                  nb_iter_sdf = nb_iter_sdf)
+    strat_ILB     <- run_strategy(Models$Model_solved_ILB,
+                                  maxH,
+                                  nb_iter_sdf = nb_iter_sdf)
+    strat_GDPLB   <- run_strategy(Models$Model_solved_GDPLB,
+                                  maxH,
+                                  nb_iter_sdf = nb_iter_sdf)
     
-    M <- rbind(c(strat_nominal$mean_d,strat_TIPS$mean_d,strat_GDPLB$mean_d),
-               c(strat_nominal$stdv_d,strat_TIPS$stdv_d,strat_GDPLB$stdv_d),
-               c(strat_nominal$DaR95,strat_TIPS$DaR95,strat_GDPLB$DaR95),
-               c(strat_nominal$mean_rr,strat_TIPS$mean_rr,strat_GDPLB$mean_rr),
-               c(strat_nominal$stdv_rr,strat_TIPS$stdv_rr,strat_GDPLB$stdv_rr),
-               c(strat_nominal$stdv_Delta_d,strat_TIPS$stdv_Delta_d,strat_GDPLB$stdv_Delta_d),
-               c(strat_nominal$avg_PD[maxH],strat_TIPS$avg_PD[maxH],strat_GDPLB$avg_PD[maxH]),
-               c(strat_nominal$avg_spreads[maxH],strat_TIPS$avg_spreads[maxH],strat_GDPLB$avg_spreads[maxH]))
+    M <- rbind(c(strat_nominal$mean_d,strat_ILB$mean_d,strat_GDPLB$mean_d),
+               c(strat_nominal$stdv_d,strat_ILB$stdv_d,strat_GDPLB$stdv_d),
+               c(strat_nominal$DaR95,strat_ILB$DaR95,strat_GDPLB$DaR95),
+               c(strat_nominal$mean_rr,strat_ILB$mean_rr,strat_GDPLB$mean_rr),
+               c(strat_nominal$stdv_rr,strat_ILB$stdv_rr,strat_GDPLB$stdv_rr),
+               c(strat_nominal$stdv_Delta_d,strat_ILB$stdv_Delta_d,strat_GDPLB$stdv_Delta_d),
+               c(strat_nominal$avg_PD[maxH],strat_ILB$avg_PD[maxH],strat_GDPLB$avg_PD[maxH]),
+               c(strat_nominal$avg_spreads[maxH],strat_ILB$avg_spreads[maxH],strat_GDPLB$avg_spreads[maxH]))
     colnames(M) <- names_extensions
     rownames(M) <- latex.column.names
     print(M)
@@ -321,8 +363,142 @@ latex_table <- rbind(latex_table,
                      "\\end{table}")
 
 name.of.file <- "table_DemSup"
-latex.file <- paste(name.of.file,"_elastsurplus",elasticitiy_of_surpluses,".txt", sep="")
+latex.file <- paste(name.of.file,
+                    "_elastsurplus",elasticity_of_surpluses,
+                    "_nu",abs_nu_y,
+                    ".txt", sep="")
 write(latex_table, paste("tables/",latex.file,sep=""))
 
 
+
+
+# ------------------------------------------------------------------------------
+# Prepare plot showing effect of credit risk on nominal yield curves
+# ------------------------------------------------------------------------------
+
+if(indic_addit_figure==1){
+  FILE = paste("figures/Figure_yds_curve_wCredit_DemaSupp.pdf",sep="")
+  pdf(file=FILE, pointsize=10, width=9, height=5)
+  
+  par(mfrow=c(1,2))
+  par(plt=c(.12,.95,.1,.85))
+  
+  for(regime in c("Demand","Supply")){
+    
+    eval(parse(text = gsub(" ","",paste("Model <- Model_",regime,sep=""))))
+    
+    # Nominal bonds:
+    Model$kappa_pi <- 0
+    Model$kappa_y  <- 0
+    
+    # Without credit risk: -------------------------------------------------------
+    
+    RES <- prepare_returns_yds(Model,maxH)
+    
+    ylim <- c(min(RES$avg_annual_nominal_returns)-.005,
+              max(RES$avg_annual_nominal_returns)+.01)
+    
+    plot(1:maxH,rep(0,maxH),las=1,
+         xlab="",ylab="",type="l",ylim=ylim,lwd=2,col="white",
+         main=paste(ifelse(regime=="Demand","(a) ","(b) "),regime,"-driven economy",sep=""))
+    
+    lines(1:maxH,c(RES$avg_annual_nominal_returns),col="blue",lwd=2)
+    
+    
+    # With credit risk: ----------------------------------------------------------
+    
+    # First case, nu_y = 0
+    Model$nu_y <- 0
+    Model_solved <- solve_ToyModel(Model,
+                                   grids,nb_iter,
+                                   nb_iter_sdf)
+    res_bond_prices <- compute_bond_prices(Model_solved,maxH=10,nb_iter_sdf)
+    p <- compute_uncond_distri(Model_solved$indicators_x,
+                               Model_solved$Probas,nb_iter = 2000)
+    avg_yds <- t(p) %*% res_bond_prices$all_rth
+    lines(1:maxH,c(avg_yds),col="blue",lwd=2,lty=2)
+    
+    # Second case, nu_y < 0
+    Model$nu_y <- - 0.1
+    Model_solved <- solve_ToyModel(Model,
+                                   grids,nb_iter,
+                                   nb_iter_sdf)
+    res_bond_prices <- compute_bond_prices(Model_solved,maxH=10,nb_iter_sdf)
+    p <- compute_uncond_distri(Model_solved$indicators_x,
+                               Model_solved$Probas,nb_iter = 2000)
+    avg_yds <- t(p) %*% res_bond_prices$all_rth
+    lines(1:maxH,c(avg_yds),col="blue",lwd=2,lty=3)
+    
+    grid()
+    
+    if(regime=="Supply"){
+      legend("topright", # places a legend at the appropriate place c("Health","Defense"), # puts text in the legend
+             c("no credit risk",
+               "with credit risk, no macro impact of default",
+               "with credit risk, with macro impact of default"),
+             lty=c(1,2,3), # gives the legend appropriate symbols (lines)
+             lwd=c(2,2,2), # line width
+             col=c("blue","blue","blue"),
+             bg="white",
+             #pch=c(3,NaN,NaN),
+             seg.len = 3,
+             cex=1)
+    }
+  }
+  
+  dev.off()
+}
+
+
+
+FILE = paste("figures/Figure_nu_effect_DemaSupp.pdf",sep="")
+pdf(file=FILE, pointsize=12, width=9, height=6)
+
+par(mfrow=c(2,2))
+#par(plt=c(.12,.95,.1,.85))
+par(plt = c(.15,.95,.15,.8))
+
+for(regime in c("Demand","Supply")){
+  
+  eval(parse(text = gsub(" ","",paste("Model <- Model_",regime,sep=""))))
+  
+  # The government issues nominal bonds:
+  Model$kappa_pi <- 0
+  Model$kappa_y  <- 0
+  
+  for(nu_y in c(0,-.1)){
+    Model$nu_y <- nu_y
+    Model_solved <- solve_ToyModel(Model,
+                                   grids,nb_iter,
+                                   nb_iter_sdf)
+    
+    indic <- which(Model_solved$d==Model_solved$d_1)
+    
+    eval(parse(text = gsub(" "," ",paste("main.t <- expression(paste('",regime,"-driven economy, ',nu[y],' = ',",nu_y,",sep=''))",sep=""))))
+
+    plot(Model_solved$d[indic],Model_solved$q0[indic],
+         col="#AAAAAA22",pch=19,
+         ylim=c(0,.10),
+         main=main.t,
+         xlab="Debt-to-GDP",ylab="Yield-to-maturity",las=1)
+    points(Model_solved$d[indic],Model_solved$q[indic],col="#5555AA22",pch=17)
+    
+    grid()
+    
+    if((regime=="Supply")&(nu_y==0)){
+      legend("bottomleft", # places a legend at the appropriate place c("Health","Defense"), # puts text in the legend
+             c("Risk-free perpetuity",
+               "Defaultable perpetuity"),
+             lty=c(NaN,NaN), # gives the legend appropriate symbols (lines)
+             lwd=1, # line width
+             col=c("#AAAAAA77","#5555AA99"),
+             bg="white",
+             pch=c(19,17),
+             seg.len = 2,
+             cex=1)
+    }
+  }
+}
+
+dev.off()
 

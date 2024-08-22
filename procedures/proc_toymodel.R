@@ -1,5 +1,7 @@
 
-solve_ToyModel_notRcpp <- function(Model,grids,nb_iter){
+solve_ToyModel_notRcpp <- function(Model,grids,
+                                   nb_iter,
+                                   nb_iter_sdf){
   
   all_d     <- grids$all_d
   all_rr    <- grids$all_rr
@@ -46,9 +48,10 @@ solve_ToyModel_notRcpp <- function(Model,grids,nb_iter){
   stat_distri <- Omega_2h[,1]
   
   # s.d.f. specification (associated with composite index)
-  res_SDF <- compute_SDF(Model)
-  mu_f0   <- res_SDF$mu_f0
-  mu_f1   <- res_SDF$mu_f1
+  res_SDF  <- compute_SDF(Model)
+  mu_f0    <- res_SDF$mu_f0
+  mu_f1    <- res_SDF$mu_f1
+  mu_u_bar <- res_SDF$mu_u
   
   nu <- - Gamma * nu_y + (kappa_pi - 1) * nu_pi + kappa_y * nu_y
   
@@ -104,12 +107,10 @@ solve_ToyModel_notRcpp <- function(Model,grids,nb_iter){
   indicators_d_t   <- matrix(1:nb_grid_d,nb_states,nb_eps*nb_m)
   indicators_m_tp1 <- t(matrix((1:nb_m) %x% vec_ones_eps,nb_m*nb_eps,nb_states))
   
-  
   indicators_x <- NULL
   
-  # all_lambdas   <- pmax(beta * (all_d_t - d_star) + all_eta_tp1 - s_star,0)
-  all_lambdas   <- pmax(all_d_t - d_star,0)
-  all_proba_def <- 1 - exp(- alpha * all_lambdas)
+  all_proba_def <- ShadowInt_PD_not(d_star - all_d_t,
+                                    Model$alpha,Model$sigma_nu)
   
   if(nb_iter>0){
     for(i in 1:nb_iter){
@@ -133,26 +134,35 @@ solve_ToyModel_notRcpp <- function(Model,grids,nb_iter){
         (indicators_rr_tp1 - 1) * nb_grid_d^2 +
         (indicators_m_tp1 - 1) * nb_grid_d^2 * nb_grid_rr
       
+      res_sdf <- compute_SDF_D(Model,
+                               mu_u_bar,
+                               indicators_x,
+                               all_proba_def,
+                               Probas,nb_iter_sdf)
+      all_f_tp1 <- matrix(res_sdf$Mu_f1[c(indicators_x)],nb_states,nb_eps*nb_m) +
+        matrix(res_sdf$Mu_f0,nb_states,nb_eps*nb_m)
+      
+      exp_nu <- exp(matrix(res_sdf$Mu_nu[c(indicators_x)],nb_states,nb_eps*nb_m))
+      
       # Compute right-hand side of the equation, conditional on varepsilon:
       all_q_tp1 <- matrix(q[c(indicators_x)],nb_states,nb_eps*nb_m)
       E <- exp(all_f_tp1) * ((1 + all_q_tp1)/(1 + all_q_tp1 - chi) +
-                               all_proba_def * (exp(nu)*RR*all_OnepChiPstar -
+                               all_proba_def * (RR*exp_nu*all_OnepChiPstar -
                                                   (1 + all_q_tp1)/(1 + all_q_tp1 - chi)))
       q <- chi - 1 + 1/apply(E * Probas,1,sum)
       
       # Computation of risk free rate (RR=1):
       all_q0_tp1 <- matrix(q0[c(indicators_x)],nb_states,nb_eps*nb_m)
       E0 <- exp(all_f_tp1) * ((1 + all_q0_tp1)/(1 + all_q0_tp1 - chi) +
-                                all_proba_def * (exp(nu)*all_OnepChiPstar -
+                                all_proba_def * (exp_nu*all_OnepChiPstar -
                                                    (1 + all_q0_tp1)/(1 + all_q0_tp1 - chi)))
       Q0 <- (chi - 1 + 1/E0) * Probas
       q0 <- apply(Q0,1,sum)
       
       # Compute change in q:
       chges_in_q <- q - q_1
-      print(
-        paste("Max percent chge in q (over states): ",max(abs(chges_in_q)),sep="")
-      )
+      print(paste("Max chge in q (over states): ",max(abs(chges_in_q)),sep=""))
+      print(paste("Mean chge in q (over states): ",mean(abs(chges_in_q)),sep=""))
       q_1 <- q
     }
   }
@@ -181,7 +191,11 @@ solve_ToyModel_notRcpp <- function(Model,grids,nb_iter){
     rstar = rstar,
     Model = Model,
     all_d = all_d,
-    all_rr = all_rr))
+    all_rr = all_rr,
+    Mu_f0 = res_sdf$Mu_f0,
+    Mu_f1 = res_sdf$Mu_f1,
+    Mu_nu = res_sdf$Mu_nu,
+    all_proba_def = all_proba_def))
 }
 
 compute_LTRF_bond_prices_notRcpp <- function(Model,
@@ -547,8 +561,10 @@ KH_filter_notRcpp <- function(F, M, N, Omega){
 }
 
 
-run_strategy <- function(Model_solved,maxH,
-                         nb_iter4probas = 1000){
+run_strategy <- function(Model_solved,
+                         maxH,
+                         nb_iter4probas = 1000,
+                         nb_iter_sdf){
   
   # Compute bond prices (no default):
   res_LTprices <- compute_LTRF_bond_prices(Model_solved$Model,maxH)
@@ -560,12 +576,14 @@ run_strategy <- function(Model_solved,maxH,
   PD <- compute_proba_def(Model_solved,maxH=maxH)
   
   # Compute bond prices:
-  res_prices <- compute_bond_prices(Model_solved, maxH)
+  res_prices <- compute_bond_prices(Model_solved, maxH,
+                                    nb_iter_sdf)
   
   # Compute risk-free yields:
   Model_solved_RF    <- Model_solved
   Model_solved_RF$Model$RR <- 1
-  res_prices_RF <- compute_bond_prices(Model_solved_RF, maxH)
+  res_prices_RF <- compute_bond_prices(Model_solved_RF, maxH,
+                                       nb_iter_sdf)
   
   # Compute unconditional distribution:
   p <- compute_uncond_distri(Model_solved$indicators_x,Model_solved$Probas,nb_iter4probas)
@@ -626,12 +644,12 @@ prepare_returns_yds <- function(Model,maxH){
   res_LTnominal_prices <- compute_LTRF_bond_prices(Model_nominal,maxH=maxH)
   
   # Compute (LT) real bond prices:
-  Model_TIPS <- Model
-  Model_TIPS$kappa_pi <- 1
-  Model_TIPS$kappa_y  <- 0
-  res_LTTIPS_prices <- compute_LTRF_bond_prices(Model_TIPS,maxH=maxH)
+  Model_ILB <- Model
+  Model_ILB$kappa_pi <- 1
+  Model_ILB$kappa_y  <- 0
+  res_LTILB_prices <- compute_LTRF_bond_prices(Model_ILB,maxH=maxH)
   
-  # Compute (LT) TIPS bond prices:
+  # Compute (LT) ILB bond prices:
   Model_GDPLB <- Model
   Model_GDPLB$kappa_pi <- 1
   Model_GDPLB$kappa_y  <- 1
@@ -640,73 +658,75 @@ prepare_returns_yds <- function(Model,maxH){
   stat_distri <- compute_stat_distri(Model)
   
   nominal_yds <- res_LTnominal_prices$all_LT_rth
-  TIPS_yds    <- res_LTTIPS_prices$all_LT_rth
+  ILB_yds    <- res_LTILB_prices$all_LT_rth
   GDPLB_yds   <- res_LTGDPLB_prices$all_LT_rth
   
   avg_nominal_yds <- t(stat_distri) %*% nominal_yds
-  avg_TIPS_yds    <- t(stat_distri) %*% TIPS_yds
+  avg_ILB_yds    <- t(stat_distri) %*% ILB_yds
   avg_GDPLB_yds   <- t(stat_distri) %*% GDPLB_yds
   
   avg_nominal_returns <- t(stat_distri) %*% res_LTnominal_prices$all_LT_ExpReturn_th
-  avg_TIPS_returns    <- t(stat_distri) %*% res_LTTIPS_prices$all_LT_ExpReturn_th
+  avg_ILB_returns    <- t(stat_distri) %*% res_LTILB_prices$all_LT_ExpReturn_th
   avg_GDPLB_returns   <- t(stat_distri) %*% res_LTGDPLB_prices$all_LT_ExpReturn_th
   
   Var_nominal_yds <- t(stat_distri) %*% nominal_yds^2 - avg_nominal_yds^2
-  Var_TIPS_yds    <- t(stat_distri) %*% TIPS_yds^2    - avg_TIPS_yds^2
+  Var_ILB_yds    <- t(stat_distri) %*% ILB_yds^2    - avg_ILB_yds^2
   Var_GDPLB_yds   <- t(stat_distri) %*% GDPLB_yds^2   - avg_GDPLB_yds^2
   Std_nominal_yds <- sqrt(Var_nominal_yds)
-  Std_TIPS_yds    <- sqrt(Var_TIPS_yds)
+  Std_ILB_yds    <- sqrt(Var_ILB_yds)
   Std_GDPLB_yds   <- sqrt(Var_GDPLB_yds)
   
   exp_log_nominal_returns <- log(res_LTnominal_prices$all_LT_ExpReturn_th)
-  exp_log_TIPS_returns    <- log(res_LTTIPS_prices$all_LT_ExpReturn_th)
+  exp_log_ILB_returns    <- log(res_LTILB_prices$all_LT_ExpReturn_th)
   exp_log_GDPLB_returns   <- log(res_LTGDPLB_prices$all_LT_ExpReturn_th)
   
   exp_annual_nominal_returns <- exp_log_nominal_returns/t(matrix(1:maxH,maxH,nb_m))
-  exp_annual_TIPS_returns    <- exp_log_TIPS_returns/t(matrix(1:maxH,maxH,nb_m))
+  exp_annual_ILB_returns    <- exp_log_ILB_returns/t(matrix(1:maxH,maxH,nb_m))
   exp_annual_GDPLB_returns   <- exp_log_GDPLB_returns/t(matrix(1:maxH,maxH,nb_m))
   
   avg_annual_nominal_returns <- c(t(stat_distri) %*% exp_annual_nominal_returns)
-  avg_annual_TIPS_returns    <- c(t(stat_distri) %*% exp_annual_TIPS_returns)
+  avg_annual_ILB_returns    <- c(t(stat_distri) %*% exp_annual_ILB_returns)
   avg_annual_GDPLB_returns   <- c(t(stat_distri) %*% exp_annual_GDPLB_returns)
   
   Var_annual_nominal_returns <- t(stat_distri) %*% exp_annual_nominal_returns^2 - avg_annual_nominal_returns^2
-  Var_annual_TIPS_returns    <- t(stat_distri) %*% exp_annual_TIPS_returns^2    - avg_annual_TIPS_returns^2
+  Var_annual_ILB_returns    <- t(stat_distri) %*% exp_annual_ILB_returns^2    - avg_annual_ILB_returns^2
   Var_annual_GDPLB_returns   <- t(stat_distri) %*% exp_annual_GDPLB_returns^2   - avg_annual_GDPLB_returns^2
   Std_annual_nominal_returns <- sqrt(Var_annual_nominal_returns)
-  Std_annual_TIPS_returns    <- sqrt(Var_annual_TIPS_returns)
+  Std_annual_ILB_returns    <- sqrt(Var_annual_ILB_returns)
   Std_annual_GDPLB_returns   <- sqrt(Var_annual_GDPLB_returns)
   
   return(list(res_LTnominal_prices = res_LTnominal_prices,
-              res_LTTIPS_prices = res_LTTIPS_prices,
+              res_LTILB_prices = res_LTILB_prices,
               res_LTGDPLB_prices = res_LTGDPLB_prices,
               nominal_yds = nominal_yds,
-              TIPS_yds = TIPS_yds,
+              ILB_yds = ILB_yds,
               GDPLB_yds = GDPLB_yds,
               avg_nominal_yds = avg_nominal_yds,
-              avg_TIPS_yds = avg_TIPS_yds,
+              avg_ILB_yds = avg_ILB_yds,
               avg_GDPLB_yds = avg_GDPLB_yds,
               avg_nominal_returns = avg_nominal_returns,
-              avg_TIPS_returns = avg_TIPS_returns,
+              avg_ILB_returns = avg_ILB_returns,
               avg_GDPLB_returns = avg_GDPLB_returns,
               Std_nominal_yds = Std_nominal_yds,
-              Std_TIPS_yds = Std_TIPS_yds,
+              Std_ILB_yds = Std_ILB_yds,
               Std_GDPLB_yds = Std_GDPLB_yds,
               exp_annual_nominal_returns = exp_annual_nominal_returns,
-              exp_annual_TIPS_returns = exp_annual_TIPS_returns,
+              exp_annual_ILB_returns = exp_annual_ILB_returns,
               exp_annual_GDPLB_returns = exp_annual_GDPLB_returns,
               avg_annual_nominal_returns = avg_annual_nominal_returns,
-              avg_annual_TIPS_returns = avg_annual_TIPS_returns,
+              avg_annual_ILB_returns = avg_annual_ILB_returns,
               avg_annual_GDPLB_returns = avg_annual_GDPLB_returns,
               Std_annual_nominal_returns = Std_annual_nominal_returns,
-              Std_annual_TIPS_returns = Std_annual_TIPS_returns,
+              Std_annual_ILB_returns = Std_annual_ILB_returns,
               Std_annual_GDPLB_returns = Std_annual_GDPLB_returns
   ))
 }
 
 
 
-prepare_and_solve_3 <- function(Model,grids,nb_iter){
+prepare_and_solve_3 <- function(Model,grids,
+                                nb_iter,
+                                nb_iter_sdf){
   
   # Compute average growth and inflation:
   stat_distri <- compute_stat_distri(Model)
@@ -720,16 +740,22 @@ prepare_and_solve_3 <- function(Model,grids,nb_iter){
   # Correct chi:
   Model_nominal$chi <- Model$chi / exp(Model_nominal$kappa_pi*mean_pi + Model_nominal$kappa_y*mean_y)
   print("--- Solving nominal-bond model ---")
-  Model_solved_nominal <- solve_ToyModel(Model_nominal,grids,nb_iter = nb_iter)
+  Model_solved_nominal <- solve_ToyModel(Model_nominal,
+                                         grids,
+                                         nb_iter = nb_iter,
+                                         nb_iter_sdf = nb_iter_sdf)
   
-  # Issuance of TIPS: ------------------------------------------------------------
-  Model_TIPS <- Model
-  Model_TIPS$kappa_pi <- 1
-  Model_TIPS$kappa_y  <- 0
+  # Issuance of ILB: ------------------------------------------------------------
+  Model_ILB <- Model
+  Model_ILB$kappa_pi <- 1
+  Model_ILB$kappa_y  <- 0
   # Correct chi:
-  Model_TIPS$chi <- Model$chi / exp(Model_TIPS$kappa_pi*mean_pi + Model_TIPS$kappa_y*mean_y)
-  print("--- Solving TIPS model ---")
-  Model_solved_TIPS <- solve_ToyModel(Model_TIPS,grids,nb_iter = nb_iter)
+  Model_ILB$chi <- Model$chi / exp(Model_ILB$kappa_pi*mean_pi + Model_ILB$kappa_y*mean_y)
+  print("--- Solving ILB model ---")
+  Model_solved_ILB <- solve_ToyModel(Model_ILB,
+                                      grids,
+                                      nb_iter = nb_iter,
+                                      nb_iter_sdf = nb_iter_sdf)
   
   # Issuance of GDP-LBs: ---------------------------------------------------------
   Model_GDPLB <- Model
@@ -738,10 +764,13 @@ prepare_and_solve_3 <- function(Model,grids,nb_iter){
   # Correct chi:
   Model_GDPLB$chi <- Model$chi / exp(Model_GDPLB$kappa_pi*mean_pi + Model_GDPLB$kappa_y*mean_y)
   print("--- Solving GDPLB model ---")
-  Model_solved_GDPLB <- solve_ToyModel(Model_GDPLB,grids,nb_iter = nb_iter)
+  Model_solved_GDPLB <- solve_ToyModel(Model_GDPLB,
+                                       grids,
+                                       nb_iter = nb_iter,
+                                       nb_iter_sdf = nb_iter_sdf)
   
   return(list(Model_solved_nominal = Model_solved_nominal,
-              Model_solved_TIPS    = Model_solved_TIPS,
+              Model_solved_ILB    = Model_solved_ILB,
               Model_solved_GDPLB   = Model_solved_GDPLB))
 }
 

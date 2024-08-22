@@ -5,6 +5,7 @@ nb_iter_sdf <- 10 # to solve SDF
 
 maxH <- 10
 
+
 outputs <- c("mean_d","stdv_d","DaR95","mean_rr","stdv_rr",
              "stdv_Delta_d","avg_PD[maxH]","avg_spreads[maxH]")
 
@@ -55,7 +56,6 @@ for(chi in values_of_chi){
       
       strat_i <- run_strategy(Model_solved_i,maxH=10,
                               nb_iter_sdf = nb_iter_sdf)
-      
       
       thisLine <- NULL
       for(output in outputs){
