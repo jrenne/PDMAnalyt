@@ -2,24 +2,6 @@
 # Analysis of public debt management strategies
 # ==============================================================================
 
-# Specify solution approach:
-nb_grid <- 25 # number of values per state variable
-nb_iter <- 30 # to solve model
-nb_iter_sdf <- 10 # to solve SDF
-
-# Determine strategies to explore:
-values_of_chi      <- c(.1,.5,.9)
-values_of_kappa_pi <- seq(0,1,by=.25)
-values_of_kappa_y  <- seq(0,.3,by=.1)
-
-# Define variables to be plotted on scatter plots:
-outputs4chart <- matrix(NaN,3,2)
-outputs4chart[,1] <- "mean_d"
-outputs4chart[,2] <- c("stdv_d","DaR95","avg_PD[maxH]")
-
-maxH <- 10
-
-
 
 outputs <- c("mean_d","stdv_d","DaR95","mean_rr","stdv_rr",
              "stdv_Delta_d","avg_PD[maxH]","avg_spreads[maxH]")
@@ -34,13 +16,12 @@ outputs4charts <- c(expression(paste(E(d),sep="")),
                     expression(paste(E(spd[10]),sep="")))
 
 grids <- make_grid(nb_grid = nb_grid,
-                   min_d = .5,
-                   max_d = 1.6,
-                   min_rr=.0,
-                   max_rr=.15,
+                   min_d  = min_d,
+                   max_d  = max_d,
+                   min_rr = min_rr,
+                   max_rr = max_rr,
                    sigma_eps = Model$sigma_eps,
                    all_quantiles_eps = c(-2,-1,1,2))
-
 
 M <- NULL
 parameters <- NULL

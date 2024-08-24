@@ -1,8 +1,8 @@
 # ==============================================================================
-# ANALYTICAL FRAMEWORK FOR PUBLIC DEBT MANAGEMENT
+# AN ANALYTICAL FRAMEWORK FOR PUBLIC DEBT MANAGEMENT
 # ==============================================================================
 # Jean-Paul RENNE
-# This version: July 2024.
+# This version: August 2024.
 # corresponding author: jean-paul.renne@unil.ch
 # ==============================================================================
 
@@ -11,27 +11,27 @@ rm(list = ls())
 
 
 # ------------------------------------------------------------------------------
-start_year <- 1970
-# ------------------------------------------------------------------------------
-
-
 # -- Run simulation in demand/supply economies ---------------------------------
 indic_DemSup <- 0
-# ------------------------------------------------------------------------------
-
 
 # -- Run new estimation? -------------------------------------------------------
-indic_estim     <- 0
-file_with_input_param <- "res_22082024.Rdat"
+indic_estim <- 0 # binary variable -- if 1, run the whole estimation approach
+start_year  <- 1970 # first year of the estimation sample
 file_with_saved_param <- "res_24082024.Rdat"
 # --- if estimation: -----------------------------------------------------------
+file_with_input_param <- "res_22082024.Rdat"
 indic_load_data    <- 0 # update dataset (from FRED and Board for yields)
 indic_use_last_res <- 1 # binary variables -- start from last best param or not
 random_factor      <- .1 # randomization to change initial values
 indic_save_model   <- 1 # binary variables -- say if estimated model is saved
+
+# -- Run simulation in calibrated economy? -------------------------------------
+indic_run_performances <- 1
 # ------------------------------------------------------------------------------
 
-# # Load packages:
+
+# ------------------------------------------------------------------------------
+# Load packages:
 library(fredr)
 library(Hmisc)
 library(Rcpp)
@@ -41,14 +41,29 @@ library(optimx)
 # Load procedures:
 source("procedures/proc_model.R")
 sourceCpp("procedures/library_cpp.cpp") # load C++ functions
+# ------------------------------------------------------------------------------
 
 
+
+
+# ------------------------------------------------------------------------------
 # ---- Demand/Supply exercise --------------------------------------------------
 if(indic_DemSup){
-  maxH        <- 10
-  nb_iter     <- 30 # to solve models
-  nb_iter_sdf <- 10 # to solve SDF
-  nb_grid     <- 25
+  print("")
+  print("------------------------------------------------")
+  print(" Demand/Supply exercise")
+  print("------------------------------------------------")
+  
+  maxH        <- 10 # maximum maturity considered for zero-coupon bonds
+  nb_iter     <- 30 # iterations used to solve models
+  nb_iter_sdf <- 10 # iterations used to solve SDF
+  nb_grid     <- 25 # size of grids
+  
+  # min and max values of d and r:
+  min_d  <- .4
+  max_d  <- 1.6
+  min_rr <- .0
+  max_rr <- .15
   
   elasticity_of_surpluses <- 1
   #abs_nu_y <- .1
@@ -69,6 +84,8 @@ if(indic_DemSup){
 
 
 
+
+# ------------------------------------------------------------------------------
 # ---- Model calibration -------------------------------------------------------
 
 if(indic_load_data==1){# in that case refresh data (from the internet)
@@ -86,6 +103,7 @@ if(indic_estim == 1){
   # Number of regimes:
   nb_m <- 5
   
+  print("")
   print("------------------------------------------------")
   print(" Calibration of macro block")
   print("------------------------------------------------")
@@ -121,6 +139,7 @@ if(indic_estim == 1){
   param <- best_param
   Model <- make_model(param,Model_ini)
   
+  print("")
   print("------------------------------------------------")
   print(" Calibration of alpha, beta, d_star and s_star")
   print("------------------------------------------------")
@@ -132,6 +151,12 @@ if(indic_estim == 1){
   nb_grid         <- 25 # number of values per state variable
   nb_iter         <- 30 # iterations to solve model
   nb_iter_sdf     <- 10 # iterations to solve SDF
+  
+  # min and max values of d and r:
+  min_d  <- .4
+  max_d  <- 1.6
+  min_rr <- .0
+  max_rr <- .15
   
   Model$mu_eta <- 0 * Model$mu_y
   
@@ -156,7 +181,43 @@ if(indic_estim == 1){
 source("outputs/make_figures_fit.R")
 source("outputs/make_table_moments.R")
 source("outputs/make_table_param.R")
+# ------------------------------------------------------------------------------
 
 
 
+
+# ------------------------------------------------------------------------------
+# ---- Analysis of the performances of issuance strategies ---------------------
+
+# Specify solution approach:
+nb_grid     <- 27 # number of values per state variable
+nb_iter     <- 30 # iterations used to solve model
+nb_iter_sdf <- 10 # iterations used to solve SDF
+maxH        <- 10 # maximum maturity of zero-coupon bonds
+
+# min and max values of d and r:
+min_d  <- .4
+max_d  <- 1.6
+min_rr <- .0
+max_rr <- .15
+
+# Determine strategies to explore:
+values_of_chi      <- c(.1,.5,.9)
+values_of_kappa_pi <- seq(0,1,by=.25)
+values_of_kappa_y  <- seq(0,.3,by=.1)
+
+# Define variables to be plotted on scatter plots:
+outputs4chart <- matrix(NaN,3,2)
+outputs4chart[,1] <- "mean_d"
+outputs4chart[,2] <- c("stdv_d","DaR95","avg_PD[maxH]")
+
+if(indic_run_performances){
+  print("")
+  print("------------------------------------------------")
+  print(" Compute performances of issuance strategies")
+  print("------------------------------------------------")
+  
+  source("simulations/run_strategies.R")  
+}
+# ------------------------------------------------------------------------------
 

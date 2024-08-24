@@ -70,10 +70,10 @@ Model_Supply$mu_pi <- mu_pi_supply
 # ------------------------------------------------------------------------------
 
 grids <- make_grid(nb_grid = nb_grid,
-                   min_d = 0.2,
-                   max_d = 1.6,
-                   min_rr = 0,
-                   max_rr=.15,
+                   min_d  = min_d,
+                   max_d  = max_d,
+                   min_rr = min_rr,
+                   max_rr = max_rr,
                    sigma_eps = Model$sigma_eps,
                    all_quantiles_eps = c(-2,-1,1,2))
 
