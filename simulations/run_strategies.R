@@ -2,6 +2,13 @@
 # Analysis of public debt management strategies
 # ==============================================================================
 
+matrix_values_4arrows <- matrix(c(.9,1,.3),nrow=1)
+matrix_values_4arrows <- rbind(matrix_values_4arrows,
+                               c(.9,0,.3))
+matrix_values_4arrows <- rbind(matrix_values_4arrows,
+                               c(.9,1,0))
+colnames(matrix_values_4arrows) <- c("chi","kappa_pi","kappa_y")
+
 
 outputs <- c("mean_d","stdv_d","DaR95","mean_rr","stdv_rr",
              "stdv_Delta_d","avg_PD[maxH]","avg_spreads[maxH]")
@@ -41,7 +48,7 @@ for(chi in values_of_chi){
       # To model liquidity risks:
       Model_i$delta <- Model$delta - .0 * kappa_pi
       # ============================================
-
+      
       Model_solved_i <- solve_ToyModel(Model_i,grids,
                                        nb_iter = nb_iter,
                                        nb_iter_sdf = nb_iter_sdf)
@@ -82,6 +89,8 @@ plot(M[(parameters[,"kappa_y"]==0),"mean_d"],M[(parameters[,"kappa_y"]==0),"stdv
 plot(M[(parameters[,"kappa_y"]==0)&(parameters[,"chi"]==0.9),"mean_rr"],
      M[(parameters[,"kappa_y"]==0)&(parameters[,"chi"]==0.9),"avg_PD[maxH]"])
 
+# Save results:
+save(parameters,M,Model,grids,file="results/results_strategies.Rda")
 
 
 
@@ -116,7 +125,7 @@ for(i in 1:nb_chi){
 
 
 FILE = paste("figures/Figure_strategies_perf.pdf",sep="")
-pdf(file=FILE, pointsize=10, width=6, height=6)
+pdf(file=FILE, pointsize=10, width=7, height=7)
 
 #plot
 layout(t(matrix(c(1,2,3,4,5,6,7,7,7,7), 5, 2)),
@@ -153,7 +162,10 @@ for(quadrant in 1:4){
     x <- M[,xvariable]
     y <- M[,yvariable]
     
-    xlim <- c(min(x),1*max(x))
+    range_x <- max(x) - min(x)
+    range_y <- max(y) - min(y)
+    mid_x <- (max(x) + min(x))/2
+    xlim <- c(min(x),max(x) + .25*range_x)
     ylim <- c(min(y),max(y))
     
     par(mar=c(4,5,3,2))
@@ -161,9 +173,37 @@ for(quadrant in 1:4){
          xlab=outputs4charts[which(xvariable==outputs)],
          ylab=outputs4charts[which(yvariable==outputs)],las=1,
          main = paste("(",letters[count_chart],")",sep=""))
+    grid()
     for(i in seq(nrow(parameters))){
       points(x[i],y[i],bg=col3[i],pch=pch3[i],col="dark grey",cex=2)
+      
+      x_size_arrow <- .10 * range_x * sign(x[i] - mid_x)
+      y_chge <- .05 * range_y
+      pos <- ifelse(x[i] > mid_x,4,2)
+      for(iii in 1:dim(matrix_values_4arrows)[1]){
+        if(sum(parameters[i,]==matrix_values_4arrows[iii,])==3){
+          arrows(x0 = x[i] + x_size_arrow,
+                 y0 = y[i] - y_size_arrow,
+                 x1 = x[i],
+                 y1 = y[i],length=.1,angle=10)
+          
+          eval(parse(text = gsub(" ","",
+                                 paste(
+                                   "text(x[i] + x_size_arrow,
+                                   y[i] - 0*y_chge,
+                                   pos=pos,
+                                   labels = expression(paste(kappa[pi],'=',",parameters[i,"kappa_pi"],",sep='')))",sep=""))))
+          eval(parse(text = gsub(" ","",
+                                 paste(
+                                   "text(x[i] + x_size_arrow,
+                                   y[i] - y_chge,
+                                   pos=pos,
+                                   labels = expression(paste(kappa[y],'=',",parameters[i,"kappa_y"],",sep='')))",sep=""))))
+          
+        }
+      }
     }
+
     if(count_chart==1){
       legend("topright",
              names_legend_4_chi,

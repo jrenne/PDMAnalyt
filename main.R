@@ -73,7 +73,7 @@ if(indic_DemSup){
   
   for(elasticity_of_surpluses in c(0,1)){
     for(abs_nu_y in c(0,.1)){
-      source("simulations/Exercise_demand_supply.R")
+      source("simulations/exercise_demand_supply.R")
     }
   }
   
