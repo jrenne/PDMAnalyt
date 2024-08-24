@@ -153,7 +153,7 @@ for(quadrant in 1:4){
     x <- M[,xvariable]
     y <- M[,yvariable]
     
-    xlim <- c(min(x),1.1*max(x))
+    xlim <- c(min(x),1*max(x))
     ylim <- c(min(y),max(y))
     
     par(mar=c(4,5,3,2))
