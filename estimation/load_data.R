@@ -2,12 +2,6 @@
 # Get yield data
 # ==============================================================================
 
-library(fredr)
-library(Hmisc)
-
-indic.download <- 1
-#indic.download <- 0
-
 start.date <- "1968-10-01"
 end.date   <- Sys.Date()
 freq       <- "a"
@@ -59,15 +53,11 @@ DATA$dy <- NaN
 DATA$dy[(lag+1):dim(DATA)[1]] <- log(DATA$GDPC1[(lag+1):dim(DATA)[1]]/
                                        DATA$GDPC1[1:(dim(DATA)[1]-lag)])
 
-plot(DATA$date,DATA$z,type="l");grid()
-
 
 
 # Nominal yield data from GSW 2006:
-if(indic.download==1){
-  download.file("https://www.federalreserve.gov/data/yield-curve-tables/feds200628.csv",
-                "Data/feds200628.csv")
-}
+download.file("https://www.federalreserve.gov/data/yield-curve-tables/feds200628.csv",
+              "Data/feds200628.csv")
 DAT <- csv.get(file = "Data/feds200628.csv", skip = 9)
 library(tidyverse)
 library(zoo)
@@ -112,10 +102,8 @@ DAT_GSW_nom <- data.frame(date=DAT_yearly$Date,
                           SVENY30=DAT_yearly$SVENY30)
 
 # Real yield data from GSW 2008:
-if(indic.download==1){
-  download.file("https://www.federalreserve.gov/data/yield-curve-tables/feds200805.csv",
-                "Data/feds200805.csv")
-}
+download.file("https://www.federalreserve.gov/data/yield-curve-tables/feds200805.csv",
+              "Data/feds200805.csv")
 DAT <- csv.get(file = "Data/feds200805.csv", skip = 18)
 library(tidyverse)
 library(zoo)

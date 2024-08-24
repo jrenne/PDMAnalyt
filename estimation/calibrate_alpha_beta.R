@@ -2,24 +2,17 @@
 # Calibration of beta
 # ==============================================================================
 
-nb_grid         <- 25 # number of values per state variable
-Model$sigma_eps <- .03
-nb_iter_sdf     <- 10 # to solve SDF
+print("------------------------------------------------")
+print(" Calibration of alpha, beta, d_star and s_star")
+print("------------------------------------------------")
 
-grids <- make_grid(nb_grid = 23,
+grids <- make_grid(nb_grid = nb_grid,
                    min_d = .5,
                    max_d = 1.6,
                    min_rr = 0,
                    max_rr = .15,
-                   sigma_eps = .03,
+                   sigma_eps = Model$sigma_eps,
                    all_quantiles_eps = c(-2,-1,1,2))
-
-candidate_alpha_values  <- c(.1,.2)
-candidate_beta_values   <- c(.02,.05,.1,.2)
-candidate_d_star_values <- c(1,1.1,1.2)
-
-Model$RR <- .5
-Model$mu_eta <- 0 * Model$mu_y
 
 maxH <- 10
 
@@ -27,26 +20,14 @@ maxH <- 10
 Model$kappa_pi <- 0
 Model$kappa_y  <- 0
 
-nb_iter <- 20 # used to solve model
-
 # Determine Chi by fitting average debt maturity:
 res_LTnominal_prices <- compute_LTRF_bond_prices(Model,maxH)
 stat_distri <- res_LTnominal_prices$stat_distri
 q <- c(t(stat_distri) %*% res_LTnominal_prices$all_LT_rth[,10])
-D <- 6
-Model$chi <- 1 + q - 1/D
+Model$chi <- 1 + q - 1/avgD
 
-# # Values of debt and debt service at which we compute spread:
-# DD <- 1.0
-# indic_DD <- which.min(abs(all_d - DD))
-# rr <- .04
-# indic_rr <- which.min(abs(all_rr - rr))
 
-# Define targets:
-Targets <- list(spread_in_bps = 20,
-                stdv_d_in_percent = 15)
-
-d_bar <- .8 # used tom compute s_star based on deterministic steady state
+d_bar <- Targets$mean_d_in_percent/100 # used tom compute s_star based on deterministic steady state
 
 best_distance <- 1000000
 
@@ -94,7 +75,7 @@ for(alpha in candidate_alpha_values){
       stdv_d_in_percent <- sqrt(var_d) * 100
       
       distance <- (spread_in_bps - Targets$spread_in_bps)^2 +
-        #(mean_d_in_percent - Targets$mean_d_in_percent)^2 +
+        (mean_d_in_percent - Targets$mean_d_in_percent)^2 +
         (stdv_d_in_percent - Targets$stdv_d_in_percent)^2
       
       print("------------------------------")
