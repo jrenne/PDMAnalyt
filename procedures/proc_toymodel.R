@@ -351,8 +351,8 @@ make_model <- function(param,Model_ini){
     Omega[i,nb_m] <- 1 - sum_omegas
   }
   Model0$Omega <- Omega
-  count <- count + 1
-  Model0$gamma <- min_gamma + (max_gamma - min_gamma) * logist(param[count])
+  # count <- count + 1
+  # Model0$gamma <- min_gamma + (max_gamma - min_gamma) * logist(param[count])
   return(Model0)
 }
 
@@ -370,14 +370,12 @@ model2param <- function(Model){
       sum_omegas <- sum_omegas + Omega[i,j]
     }
   }
-  count <- count + 1
-  param[count] <- inv_logist((Model$gamma - min_gamma)/(max_gamma - min_gamma))
+  # count <- count + 1
+  # param[count] <- inv_logist((Model$gamma - min_gamma)/(max_gamma - min_gamma))
   return(param)
 }
 
-compute_distance <- function(param,targets,Model_ini){
-  Model   <- make_model(param,Model_ini)
-  
+compute_targeted_moments <- function(Model){
   # Nominal yields:
   Model_nominal <- Model
   Model_nominal$kappa_pi <- 0
@@ -395,7 +393,7 @@ compute_distance <- function(param,targets,Model_ini){
   
   # Average inflation and GDP growth:
   avg_Pi <- sum(stat_distri * Model$mu_pi)
-  avg_Dy <- sum(stat_distri * Model$mu_Dy)
+  avg_Dy <- sum(stat_distri * Model$mu_y)
   
   Var_nom_yds  <- t(stat_distri) %*% res_LTnominal_prices$all_LT_rth^2 - avg_nom_yds^2
   Var_real_yds <- t(stat_distri) %*% res_LTreal_prices$all_LT_rth^2    - avg_real_yds^2
@@ -403,16 +401,96 @@ compute_distance <- function(param,targets,Model_ini){
   Std_nom_yds  <- sqrt(Var_nom_yds)
   Std_real_yds <- sqrt(Var_real_yds)
   
-  distance <- 5000000 * ((avg_nom_yds[10] - avg_nom_yds[1] - targets$target_slop_nom)^2 +
-                           .25*(avg_nom_yds[10] - targets$target_10_nom)^2 +
-                           (avg_real_yds[10] - avg_real_yds[2] - targets$target_slop_rea)^2 +
-                           .25*(avg_real_yds[10] - targets$target_10_rea)^2 + 
-                           .1*(avg_Pi - targets$target_avg_Pi)^2 +
-                           .1*(avg_Dy - targets$target_avg_Dy)^2 +
-                           .0 * (Std_nom_yds[10]  - targets$target_std_10_nom)^2 +
-                           .2 * (Std_real_yds[10] - targets$target_std_10_rea)^2 +
-                           1000 * (avg_nom_yds[10] - avg_real_yds[10] -
-                                   avg_Pi - targets$IRP10)^2)
+  return(list(
+    avg_nom_yds = avg_nom_yds,
+    avg_real_yds = avg_real_yds,
+    avg_Pi = avg_Pi, avg_Dy = avg_Dy,
+    Std_nom_yds = Std_nom_yds,
+    Std_real_yds = Std_real_yds))
+}
+
+compare_model_target_moments <- function(Model,targets){
+  
+  model_moments <- compute_targeted_moments(Model)  
+  
+  avg_nom_yds  = model_moments$avg_nom_yds
+  avg_real_yds = model_moments$avg_real_yds
+  avg_Pi       = model_moments$avg_Pi
+  avg_Dy       = model_moments$avg_Dy
+  Std_nom_yds  = model_moments$Std_nom_yds
+  Std_real_yds = model_moments$Std_real_yds
+  
+  table_compare_moments <- matrix(NaN,9,3)
+  table_compare_moments[,3] <- 1
+  colnames(table_compare_moments) <- c("Model","Target","Weight")
+  
+  name_of_moments <- c("Avg. slope of nominal yield curve (1y-10y)")
+  table_compare_moments[1,1] <- avg_nom_yds[10] - avg_nom_yds[1]
+  table_compare_moments[1,2] <- targets$target_slop_nom
+  table_compare_moments[1,3] <- 1
+  
+  name_of_moments <- c(name_of_moments,"Avg. 10-year nominal yield")
+  table_compare_moments[2,1] <- avg_nom_yds[10]
+  table_compare_moments[2,2] <- targets$target_10_nom
+  table_compare_moments[2,3] <- .25
+  
+  name_of_moments <- c(name_of_moments,"Avg. slope of real yield curve (2y-10y)")
+  table_compare_moments[3,1] <- avg_real_yds[10] - avg_real_yds[2]
+  table_compare_moments[3,2] <- targets$target_slop_rea
+  table_compare_moments[3,3] <- 1
+  
+  name_of_moments <- c(name_of_moments,"Avg. 10-year real yield")
+  table_compare_moments[4,1] <- avg_real_yds[10]
+  table_compare_moments[4,2] <- targets$target_10_rea
+  table_compare_moments[4,3] <- .25
+  
+  name_of_moments <- c(name_of_moments,"Avg. inflation")
+  table_compare_moments[5,1] <- avg_Pi
+  table_compare_moments[5,2] <- targets$target_avg_Pi
+  table_compare_moments[5,3] <- .1
+  
+  name_of_moments <- c(name_of_moments,"Avg. real GDP growth")
+  table_compare_moments[6,1] <- avg_Dy
+  table_compare_moments[6,2] <- targets$target_avg_Dy
+  table_compare_moments[6,3] <- .1
+  
+  name_of_moments <- c(name_of_moments,"Std dev. of 10-year nominal yield")
+  table_compare_moments[7,1] <- Std_nom_yds[10]
+  table_compare_moments[7,2] <- targets$target_std_10_nom
+  table_compare_moments[7,3] <- 0
+  
+  name_of_moments <- c(name_of_moments,"Std dev. of 10-year real yield")
+  table_compare_moments[8,1] <- Std_real_yds[10]
+  table_compare_moments[8,2] <- targets$target_std_10_rea
+  table_compare_moments[8,3] <- .2
+  
+  name_of_moments <- c(name_of_moments,"Avg. breakeven")
+  table_compare_moments[9,1] <- avg_nom_yds[10] - avg_real_yds[10] - avg_Pi
+  table_compare_moments[9,2] <- targets$IRP10
+  table_compare_moments[9,3] <- 1000
+  
+  rownames(table_compare_moments) <- name_of_moments
+  
+  return(list(
+    table_compare_moments = table_compare_moments,
+    avg_nom_yds = avg_nom_yds,
+    avg_real_yds = avg_real_yds,
+    avg_Pi = avg_Pi, avg_Dy = avg_Dy,
+    Std_nom_yds = Std_nom_yds,
+    Std_real_yds = Std_real_yds))
+}
+
+compute_distance <- function(param,targets,Model_ini){
+  
+  Model   <- make_model(param,Model_ini)
+  
+  res <- compare_model_target_moments(Model,targets)
+  
+  table_compare_moments <- res$table_compare_moments
+  avg_nom_yds <- res$avg_nom_yds
+
+  distance <- 5000000 * sum( table_compare_moments[,3] * 
+    (table_compare_moments[,1] - table_compare_moments[,2])^2)
   
   # Add penalty when yield curves are not monotonously increasing:
   distance <- distance + 10000*(avg_nom_yds[2]<avg_nom_yds[1])*(avg_nom_yds[1]-avg_nom_yds[2])
@@ -620,8 +698,8 @@ run_strategy <- function(Model_solved,
   DaR99 <- interpolate_quantile(Model_solved$all_d,distri_d,.99)
   
   return(list(p=p,
-              DaR95 = DaR95,
-              DaR99 = DaR99,
+              DaR95 = 100*DaR95,
+              DaR99 = 100*DaR99,
               res_prices = res_prices,
               res_prices_RF = res_prices_RF,
               PD = 100*PD, avg_PD = 100*avg_PD,
@@ -880,5 +958,19 @@ ShadowInt_PD_not <- function(fs,alpha,sigma){
   return(P)
 }
 
+make.entry <- function(x,format.nb,dollar=1){
+  if(dollar==1){
+    output <- paste("$",sprintf(format.nb,x),"$",sep="")
+  }else{
+    output <- sprintf(format.nb,x)
+  }
+  return(output)
+}
+format.nb0 <- paste("%.",0,"f",sep="")
+format.nb1 <- paste("%.",1,"f",sep="")
+format.nb2 <- paste("%.",2,"f",sep="")
+format.nb3 <- paste("%.",3,"f",sep="")
+format.nb4 <- paste("%.",4,"f",sep="")
+format.nb5 <- paste("%.",5,"f",sep="")
 
 

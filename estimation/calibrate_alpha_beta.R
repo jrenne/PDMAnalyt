@@ -2,9 +2,9 @@
 # Calibration of beta
 # ==============================================================================
 
-nb_grid <- 25 # number of values per state variable
+nb_grid         <- 25 # number of values per state variable
 Model$sigma_eps <- .03
-nb_iter_sdf <- 10 # to solve SDF
+nb_iter_sdf     <- 10 # to solve SDF
 
 grids <- make_grid(nb_grid = 23,
                    min_d = .5,

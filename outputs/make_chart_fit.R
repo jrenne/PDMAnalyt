@@ -29,62 +29,6 @@ lines(c(RES$avg_ILB_returns),col="red")
 lines(c(RES$avg_GDPLB_returns),col="black",lty=2)
 
 
-# ==============================================================================
-# Prepare table showing model parameterization
-# ==============================================================================
-
-make.entry <- function(x,format.nb){
-  output <- paste("$",sprintf(format.nb,x),"$",sep="")
-  return(output)
-}
-format.nb0 <- paste("%.",0,"f",sep="")
-format.nb1 <- paste("%.",1,"f",sep="")
-format.nb2 <- paste("%.",2,"f",sep="")
-format.nb3 <- paste("%.",3,"f",sep="")
-
-
-columns <- NULL
-for(i in 1:5){
-  columns <- paste(columns,"r",sep="")
-}
-for(i in 1:nb_m){
-  columns <- paste(columns,"c",sep="")
-}
-
-latex_table <- rbind("\\begin{table}[ph!]",
-                     "\\caption{Model parameterization}",
-                     "\\label{tab:param}",
-                     paste("\\begin{tabular*}{\\textwidth}{c@{\\extracolsep{\\fill}}",columns,"}",sep=""),
-                     "\\hline",
-                     paste("Regime&$\\mu_\\pi$&&$\\mu_y$&&\\multicolumn{",nb_m,"}{c}{$\\Omega$}\\\\",sep=""),
-                     "\\hline")
-
-for(i in 1:nb_m){
-  pi_i <- NULL
-  for(j in 1:nb_m){
-    pi_i <- paste(pi_i,"&",make.entry(Model$Omega[i,j],format.nb3),sep="")
-  }
-  this_line <- paste(i,"&",make.entry(Model$mu_pi[i],format.nb3),
-                     "&&",make.entry(Model$mu_y[i],format.nb3),
-                     "&",pi_i,
-                     "\\\\",sep="")
-  latex_table <- rbind(latex_table,
-                       this_line)
-}
-
-latex_table <- rbind(latex_table,
-                     "\\hline",
-                     "\\end{tabular*}",
-                     "\\begin{footnotesize}",
-                     "\\parbox{\\linewidth}{\\textit{Notes}: This table shows the model parameterization of the baseline model.}",
-                     "\\end{footnotesize}",
-                     "\\end{table}")
-
-name.of.file <- "table_param"
-latex.file <- paste(name.of.file,".txt", sep="")
-write(latex_table, paste("tables/",latex.file,sep=""))
-
-
 
 # ==============================================================================
 # Prepare figure illustrating the model fit

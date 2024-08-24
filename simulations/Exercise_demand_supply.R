@@ -99,18 +99,6 @@ Model_Supply$mu_pi <- mu_pi_supply
 # Prepare Latex table showing specifications
 # ------------------------------------------------------------------------------
 
-make.entry <- function(x,format.nb,dollar=1){
-  if(dollar==1){
-    output <- paste("$",sprintf(format.nb,x),"$",sep="")
-  }else{
-    output <- sprintf(format.nb,x)
-  }
-  return(output)
-}
-format.nb0 <- paste("%.",0,"f",sep="")
-format.nb1 <- paste("%.",1,"f",sep="")
-format.nb2 <- paste("%.",2,"f",sep="")
-format.nb3 <- paste("%.",3,"f",sep="")
 
 nb_m <- dim(Omega)[1]
 

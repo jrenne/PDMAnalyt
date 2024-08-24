@@ -63,73 +63,6 @@ plot(DATA$date,DATA$z,type="l");grid()
 
 
 
-# 
-# 
-# # Download Survey of Professional Forecasters data: ============================
-# 
-# # 10 year GDP growth------------------------------------------------------------
-# if(indic.download==1){
-#   download.file("https://www.philadelphiafed.org/-/media/frbp/assets/surveys-and-data/survey-of-professional-forecasters/data-files/files/mean_rgdp10_level.xlsx",
-#                 "Data/mean_rgdp10_level.xlsx")
-# }
-# SPF <- readxl::read_xlsx(path="Data/mean_rgdp10_level.xlsx",na="#N/A")
-# SPF$date <- as.Date(paste(SPF$YEAR,"-",1+3*(SPF$QUARTER-1),"-01",sep=""))
-# indic1st <- which(SPF$date==start.date)
-# SPF      <- SPF[indic1st:dim(SPF)[1],]
-# SPF.GDP10<- data.frame(date=SPF$date,RGDP10=SPF$RGDP10)
-# 
-# # 1 year GDP growth-------------------------------------------------------------
-# if(indic.download==1){
-#   download.file("https://www.philadelphiafed.org/-/media/frbp/assets/surveys-and-data/survey-of-professional-forecasters/data-files/files/mean_rgdp_level.xlsxs",
-#                 "Data/mean_rgdp_level.xlsxs")
-# }
-# SPF <- readxl::read_xlsx(path="Data/mean_rgdp_level.xlsxs")
-# SPF$date <- as.Date(paste(SPF$YEAR,"-",1+3*(SPF$QUARTER-1),"-01",sep=""))
-# SPF <- data.frame(date=SPF$date,RGDP1=100*log(as.numeric(SPF$RGDP6)/as.numeric(SPF$RGDP2)))
-# indic1st <- which(SPF$date==start.date)
-# SPF <- SPF[indic1st:dim(SPF)[1],]
-# SPF.GDP<- data.frame(date=SPF$date,RGDP1=SPF$RGDP1)
-# 
-# # 1 year CPI -------------------------------------------------------------------
-# if(indic.download==1){
-#   download.file("https://www.philadelphiafed.org/-/media/frbp/assets/surveys-and-data/survey-of-professional-forecasters/data-files/files/mean_cpi_level.xlsx",
-#                 "Data/mean_cpi_level.xlsx")
-# }
-# SPF <- readxl::read_xlsx(path="Data/mean_cpi_level.xlsx")
-# SPF$date <- as.Date(paste(SPF$YEAR,"-",1+3*(SPF$QUARTER-1),"-01",sep=""))
-# SPF <- data.frame(date=SPF$date,CPI1=as.numeric(SPF$CPI6))
-# indic1st <- which(SPF$date==start.date)
-# SPF <- SPF[indic1st:dim(SPF)[1],]
-# SPF.CPI <- data.frame(date=SPF$date,CPI1=SPF$CPI1)
-# 
-# # 10 year CPI-------------------------------------------------------------------
-# if(indic.download==1){
-#   download.file("https://www.philadelphiafed.org/-/media/frbp/assets/surveys-and-data/survey-of-professional-forecasters/data-files/files/mean_cpi10_level.xlsx",
-#                 "Data/mean_cpi10_level.xlsx")
-# }
-# SPF <- readxl::read_xlsx(path="Data/mean_cpi10_level.xlsx")
-# SPF$date <- as.Date(paste(SPF$YEAR,"-",1+3*(SPF$QUARTER-1),"-01",sep=""))
-# SPF <- data.frame(date=SPF$date,CPI10=as.numeric(SPF$CPI10))
-# indic1st <- which(SPF$date==start.date)
-# SPF <- SPF[indic1st:dim(SPF)[1],]
-# SPF.CPI10<- data.frame(date=SPF$date,CPI10=SPF$CPI10)
-# 
-# # 10 year TBILL-----------------------------------------------------------------
-# if(indic.download==1){
-#   download.file("https://www.philadelphiafed.org/-/media/frbp/assets/surveys-and-data/survey-of-professional-forecasters/data-files/files/mean_bill10_level.xlsx",
-#                 "Data/mean_bill10_level.xlsx")
-# }
-# SPF <- readxl::read_xlsx(path="Data/mean_bill10_level.xlsx")
-# SPF$date <- as.Date(paste(SPF$YEAR,"-",1+3*(SPF$QUARTER-1),"-01",sep=""))
-# SPF <- data.frame(date=SPF$date,BILL10=as.numeric(SPF$BILL10))
-# indic1st <- which(SPF$date==start.date)
-# SPF <- SPF[indic1st:dim(SPF)[1],]
-# SPF.BILL10<- data.frame(date=SPF$date,BILL10=SPF$BILL10)
-# 
-# 
-
-
-
 # Nominal yield data from GSW 2006:
 if(indic.download==1){
   download.file("https://www.federalreserve.gov/data/yield-curve-tables/feds200628.csv",
@@ -217,48 +150,8 @@ DAT_GSW_real <- data.frame(date=DAT_yearly$Date,
 
 
 # Merge all data frames:
-
-# DATA <- merge(DATA,SPF.GDP10,by="date",all=TRUE)
-# DATA <- merge(DATA,SPF.GDP,by="date",all=TRUE)
-# DATA <- merge(DATA,SPF.CPI10,by="date",all=TRUE)
-# DATA <- merge(DATA,SPF.CPI,by="date",all=TRUE)
-# DATA <- merge(DATA,SPF.BILL10,by="date",all=TRUE)
 DATA <- merge(DATA,DAT_GSW_nom,by="date",all=TRUE)
 DATA <- merge(DATA,DAT_GSW_real,by="date",all=TRUE)
-# 
-# par(mfrow=c(1,2))
-# plot(DATA$date,DATA$z,type="l",ylim=c(-.1,.04))
-# points(DATA$date,DATA$RGDP1)
-# plot(DATA$z,DATA$RGDP1)
-# abline(lm(DATA$RGDP1~DATA$z))
-# 
-# # plot(DATA$date,DATA$z,type="l")
-# # lines(DATA$date,DATA$DFII10/100,col="red")
-# # lines(DATA$date,DATA$DFII5/100,col="blue")
-# 
-# # plot(DATA$date,DATA$RGDP1,type="l",ylim=c(-.02,.07))
-# # lines(DATA$date,DATA$DFII10/100,col="red")
-# # lines(DATA$date,DATA$DFII5/100,col="blue")
-# 
-# plot(DATA$date,DATA$pi,type="l")
-# lines(DATA$date,DATA$CPI1,col="blue")
-# lines(DATA$date,DATA$CPI10,col="red")
-# 
-# plot(DATA$date,DATA$dy,type="l")
-# lines(DATA$date,DATA$RGDP1,col="blue")
-# points(DATA$date,DATA$RGDP10,col="red")
-# 
-# DATA$TRP10 <- DATA$THREEFY10 - DATA$BILL10
-# 
-# DATA$IRP10 <- (DATA$THREEFY10 - DATA$TIPSY10) - DATA$CPI10
-# plot(DATA$date,DATA$THREEFYTP10,type="l")
-# lines(DATA$date,DATA$IRP10,col="red")
-# points(DATA$date,DATA$TRP10)
-# 
-# save(DATA,file="Data/data_yds.Rda")
-# 
-# 
-# 
 
 save(DATA,file="Data/data.Rda")
 

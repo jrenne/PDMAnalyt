@@ -1,0 +1,22 @@
+\begin{table}[ph!]
+\caption{Model-implied versus targeted moments}
+\label{tab:moment_matching}
+\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}rr}
+\hline
+Moment&Model&Target\\
+\hline
+Avg. slope of nominal yield curve (1y-10y)&$0.012$&$0.011$\\
+Avg. 10-year nominal yield&$0.059$&$0.060$\\
+Avg. slope of real yield curve (2y-10y)&$0.003$&$0.009$\\
+Avg. 10-year real yield&$0.015$&$0.014$\\
+Avg. inflation&$0.044$&$0.039$\\
+Avg. real GDP growth&$0.030$&$0.027$\\
+Std dev. of 10-year nominal yield&$0.029$&$0.030$\\
+Std dev. of 10-year real yield&$0.007$&$0.013$\\
+Avg. breakeven&$-0.000$&$0.000$\\
+\hline
+\end{tabular*}
+\begin{footnotesize}
+\parbox{\linewidth}{\textit{Notes}: This table compares model-implied with targeted moments. The distance between these moments is part of the loss function that is minimized to estimate the components of $\mu_\pi$, $\mu_y$, and $\Omega$. See Subsection~\ref{sub:calibration} for more details.}
+\end{footnotesize}
+\end{table}

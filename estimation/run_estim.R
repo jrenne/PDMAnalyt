@@ -1,4 +1,10 @@
 
+# # Optimization set up:
+# maxit.nlminb <- 100
+# maxit.NlMd   <- 4000
+# nb_loops     <- 2
+
+
 start_year <- 1970
 #start_year <- 2000
 
@@ -11,11 +17,6 @@ DATA <- DATA[indic_fst:dim(DATA)[1],]
 
 # Number of regimes:
 nb_m <- 5
-
-# Optimization set up:
-maxit.nlminb <- 100
-maxit.NlMd   <- 4000
-nb_loops     <- 2
 
 min_Pi <- -.02
 max_Pi <- +.20
@@ -54,7 +55,7 @@ targets <- list(
 #   target_avg_Dy = .015)
 
 # Set initial Model ------------------------------------------------------------
-gamma      <- 5      # risk aversion
+gamma      <- 6      # risk aversion
 delta      <- .99    # preference for present
 beta       <- .3     # sensitivity of surplus to debt level
 d_star     <- .6     # targeted debt level
@@ -62,7 +63,7 @@ sigma_eps  <- .02    # std dev of surplus shocks
 alpha      <- 1      # elasticity of default proba
 s_star     <- .06    # max surplus
 std_Pi     <- .01    # standard deviation of inflation measurement errors (for Hamilton filter)
-std_Dy     <- .01    # standard deviation of GDP growth measurement errors (for Hamilton filter)
+std_Dy     <- .005   # standard deviation of GDP growth measurement errors (for Hamilton filter)
 std_nom_yd <- .008   # standard deviation of yield measurement errors (for Hamilton filter)
 nu_y       <- -.2 * 0
 nu_pi      <- .05 * 0
@@ -110,8 +111,12 @@ Model_ini <- list(gamma=1.2,
                   std_Dy    = std_Dy,
                   std_nom_yd = std_nom_yd)
 
+load(file="results/res_22082024.Rdat")
+Model_ini <- Model
+
+
 param <- model2param(Model_ini)
-param <- param + 1*rnorm(param)
+param <- param + .4*rnorm(param)
 
 #param <- param + .1*rnorm(param)
 
@@ -148,7 +153,7 @@ Model <- make_model(param,Model_ini)
 #save(Model,file="results/res_16082024.Rdat")
 #save(Model,file="results/res_22082024.Rdat")
 
-#load(file="results/res_16082024.Rdat")
+#load(file="results/res_22082024.Rdat")
 
 source("make_chart_fit.R")
 

@@ -1,0 +1,18 @@
+\begin{table}[ph!]
+\caption{Model parameterization}
+\label{tab:param}
+\begin{tabular*}{\textwidth}{c@{\extracolsep{\fill}}rrrrrccccc}
+\hline
+Regime&$\mu_\pi$&&$\mu_y$&&\multicolumn{5}{c}{$\Omega$}\\
+\hline
+1&$0.0270$&&$0.0597$&&$0.8700$&$0.1299$&$0.0000$&$0.0000$&$0.0000$\\
+2&$-0.0196$&&$-0.0999$&&$0.6878$&$0.1188$&$0.1933$&$0.0001$&$0.0000$\\
+3&$0.0808$&&$0.0155$&&$0.0392$&$0.0003$&$0.9536$&$0.0069$&$0.0000$\\
+4&$0.0369$&&$0.0371$&&$0.0004$&$0.0480$&$0.2802$&$0.6644$&$0.0070$\\
+5&$0.0241$&&$0.0205$&&$0.0024$&$0.1717$&$0.0134$&$0.0075$&$0.8051$\\
+\hline
+\end{tabular*}
+\begin{footnotesize}
+\parbox{\linewidth}{\textit{Notes}: This table shows the model parameterization of the baseline model.}
+\end{footnotesize}
+\end{table}
