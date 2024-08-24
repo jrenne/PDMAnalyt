@@ -1,7 +1,5 @@
-
-
 # ==============================================================================
-# Prepare table showing moment matching results
+# Prepare table showing moment-matching results
 # ==============================================================================
 
 latex_table <- rbind("\\begin{table}[ph!]",

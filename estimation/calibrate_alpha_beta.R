@@ -2,10 +2,6 @@
 # Calibration of beta
 # ==============================================================================
 
-print("------------------------------------------------")
-print(" Calibration of alpha, beta, d_star and s_star")
-print("------------------------------------------------")
-
 grids <- make_grid(nb_grid = nb_grid,
                    min_d = .5,
                    max_d = 1.6,
@@ -25,7 +21,6 @@ res_LTnominal_prices <- compute_LTRF_bond_prices(Model,maxH)
 stat_distri <- res_LTnominal_prices$stat_distri
 q <- c(t(stat_distri) %*% res_LTnominal_prices$all_LT_rth[,10])
 Model$chi <- 1 + q - 1/avgD
-
 
 d_bar <- Targets$mean_d_in_percent/100 # used tom compute s_star based on deterministic steady state
 

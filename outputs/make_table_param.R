@@ -3,6 +3,8 @@
 # Prepare table showing model parameterization
 # ==============================================================================
 
+nb_m <- dim(Model$Omega)[1]
+
 columns <- NULL
 for(i in 1:5){
   columns <- paste(columns,"r",sep="")

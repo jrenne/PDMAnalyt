@@ -10,10 +10,10 @@ Avg. 10-year nominal yield&$0.059$&$0.060$\\
 Avg. slope of real yield curve (2y-10y)&$0.003$&$0.009$\\
 Avg. 10-year real yield&$0.015$&$0.014$\\
 Avg. inflation&$0.044$&$0.039$\\
-Avg. real GDP growth&$0.030$&$0.027$\\
-Std dev. of 10-year nominal yield&$0.029$&$0.030$\\
-Std dev. of 10-year real yield&$0.007$&$0.013$\\
-Avg. breakeven&$-0.000$&$0.000$\\
+Avg. real GDP growth&$0.029$&$0.027$\\
+Std dev. of 10-year nominal yield&$0.028$&$0.030$\\
+Std dev. of 10-year real yield&$0.008$&$0.013$\\
+Avg. breakeven&$0.000$&$0.000$\\
 \hline
 \end{tabular*}
 \begin{footnotesize}

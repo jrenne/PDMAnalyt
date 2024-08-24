@@ -9,19 +9,26 @@
 # clear workspace:
 rm(list = ls())
 
-# -- Run new estimation? -------------------------------------------------------
 
-indic_estim     <- 1
+# ------------------------------------------------------------------------------
+start_year <- 1970
+# ------------------------------------------------------------------------------
+
+
+# -- Run simulation in demand/supply economies ---------------------------------
+indic_DemSup <- 0
+# ------------------------------------------------------------------------------
+
+
+# -- Run new estimation? -------------------------------------------------------
+indic_estim     <- 0
 file_with_input_param <- "res_22082024.Rdat"
 file_with_saved_param <- "res_24082024.Rdat"
-
 # --- if estimation: -----------------------------------------------------------
-
 indic_load_data    <- 0 # update dataset (from FRED and Board for yields)
 indic_use_last_res <- 1 # binary variables -- start from last best param or not
 random_factor      <- .1 # randomization to change initial values
 indic_save_model   <- 1 # binary variables -- say if estimated model is saved
-
 # ------------------------------------------------------------------------------
 
 # # Load packages:
@@ -35,19 +42,46 @@ library(optimx)
 source("procedures/proc_model.R")
 sourceCpp("procedures/library_cpp.cpp") # load C++ functions
 
+
+# ---- Demand/Supply exercise --------------------------------------------------
+if(indic_DemSup){
+  maxH        <- 10
+  nb_iter     <- 30 # to solve models
+  nb_iter_sdf <- 10 # to solve SDF
+  nb_grid     <- 25
+  
+  elasticity_of_surpluses <- 1
+  #abs_nu_y <- .1
+  abs_nu_y <- 0
+  
+  values_of_chi <- c(.2,.9)
+  
+  for(elasticity_of_surpluses in c(0,1)){
+    for(abs_nu_y in c(0,.1)){
+      source("simulations/Exercise_demand_supply.R")
+    }
+  }
+  
+  # Prepare table showing parameterization and figure showing yield curves:
+  source("outputs/make_table_figure_DemSup.R")
+}
+# ------------------------------------------------------------------------------
+
+
+
 # ---- Model calibration -------------------------------------------------------
 
-# By default, load available dataset:
-load(file="Data/data.Rda")
+if(indic_load_data==1){# in that case refresh data (from the internet)
+  print(" --- Loading data ---")
+  source("estimation/load_data.R")
+  print(" --- Loading data: Done ---")
+}else{
+  load(file="Data/data.Rda")
+}
+# Resize dataset (based on "start_year"), and compute moment targets:
+source("estimation/resize_and_compute_targets.R")
 
 if(indic_estim == 1){
-  if(indic_load_data==1){
-    print(" --- Loading data ---")
-    source("estimation/load_data.R")
-    print(" --- Loading data: Done ---")
-  }
-  # Beginning of estimation sample:
-  start_year <- 1970
   
   # Number of regimes:
   nb_m <- 5
@@ -96,8 +130,8 @@ if(indic_estim == 1){
   candidate_d_star_values <- c(1,1.1,1.2)
   
   nb_grid         <- 25 # number of values per state variable
-  nb_iter         <- 20 # used to solve model
-  nb_iter_sdf     <- 10 # to solve SDF
+  nb_iter         <- 30 # iterations to solve model
+  nb_iter_sdf     <- 10 # iterations to solve SDF
   
   Model$mu_eta <- 0 * Model$mu_y
   
@@ -117,6 +151,12 @@ if(indic_estim == 1){
 }else{
   load(file=paste("results/",file_with_saved_param,sep=""))
 }
+
+# Prepare figures illustrating the model fit:
+source("outputs/make_figures_fit.R")
+source("outputs/make_table_moments.R")
+source("outputs/make_table_param.R")
+
 
 
 
