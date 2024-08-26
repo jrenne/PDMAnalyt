@@ -9,24 +9,23 @@
 # clear workspace:
 rm(list = ls())
 
-
-# ------------------------------------------------------------------------------
-# -- Run simulation in demand/supply economies ---------------------------------
-indic_DemSup <- 0
-
+# -- Run simulation in demand/supply economies? --------------------------------
+indic_DemSup <- 1
 # -- Run new estimation? -------------------------------------------------------
-indic_estim <- 0 # binary variable -- if 1, run the whole estimation approach
-start_year  <- 1970 # first year of the estimation sample
-file_with_saved_param <- "res_24082024.Rdat"
+indic_estim <- 1 # binary variable -- if 1, run the whole estimation approach
+# -- Run simulation in calibrated economy? -------------------------------------
+indic_run_performances <- 1
+
+
+
 # --- if estimation: -----------------------------------------------------------
-file_with_input_param <- "res_22082024.Rdat"
+start_year  <- 1970 # first year of the estimation sample
+file_with_saved_param <- "res_26082024.Rdat"
+file_with_input_param <- "res_24082024.Rdat"
 indic_load_data    <- 0 # update dataset (from FRED and Board for yields)
 indic_use_last_res <- 1 # binary variables -- start from last best param or not
 random_factor      <- .1 # randomization to change initial values
 indic_save_model   <- 1 # binary variables -- say if estimated model is saved
-
-# -- Run simulation in calibrated economy? -------------------------------------
-indic_run_performances <- 1
 # ------------------------------------------------------------------------------
 
 
@@ -100,6 +99,10 @@ source("estimation/resize_and_compute_targets.R")
 
 if(indic_estim == 1){
   
+  set.seed(123) # for the exact replication of the results
+  # Note: random numbers are used only to randomize starting values
+  # in the loss function optimization.
+
   # Number of regimes:
   nb_m <- 5
   
@@ -123,7 +126,7 @@ if(indic_estim == 1){
   maxit.NlMd   <- 2000
   nb_loops     <- 2
   
-  nb_attemps <- 5
+  nb_attemps <- 40
   # Run a number nb_attemps of new estimations, starting from randomized
   # starting values:
   best <- 100000
@@ -141,12 +144,23 @@ if(indic_estim == 1){
   
   print("")
   print("------------------------------------------------")
+  print(" Calibration of nu_y, nu_pi, and mu_eta")
+  print("------------------------------------------------")
+  
+  # Calibration of nu_y and nu_pi
+  Model$nu_y  <- -.05
+  Model$nu_pi <- -.021
+  # Modify mu_eta:
+  Model$mu_eta <- .5 * Model$mu_y
+  
+  print("")
+  print("------------------------------------------------")
   print(" Calibration of alpha, beta, d_star and s_star")
   print("------------------------------------------------")
   
   candidate_alpha_values  <- c(.1,.2)
   candidate_beta_values   <- c(.02,.05,.1,.2)
-  candidate_d_star_values <- c(1,1.1,1.2)
+  candidate_d_star_values <- c(.9,1,1.1,1.2)
   
   nb_grid         <- 25 # number of values per state variable
   nb_iter         <- 30 # iterations to solve model
@@ -157,8 +171,6 @@ if(indic_estim == 1){
   max_d  <- 1.6
   min_rr <- .0
   max_rr <- .15
-  
-  Model$mu_eta <- 0 * Model$mu_y
   
   avgD <- 6 # targeted average debt maturity
   
@@ -190,7 +202,7 @@ source("outputs/make_table_param.R")
 # ---- Analysis of the performances of issuance strategies ---------------------
 
 # Specify solution approach:
-nb_grid     <- 27 # number of values per state variable
+nb_grid     <- 30 # number of values per state variable
 nb_iter     <- 30 # iterations used to solve model
 nb_iter_sdf <- 10 # iterations used to solve SDF
 maxH        <- 10 # maximum maturity of zero-coupon bonds
@@ -203,7 +215,7 @@ max_rr <- .15
 
 # Determine strategies to explore:
 values_of_chi      <- c(.1,.5,.9)
-values_of_kappa_pi <- seq(0,1,by=.25)
+values_of_kappa_pi <- seq(0,1,by=.2)
 values_of_kappa_y  <- seq(0,.3,by=.1)
 
 # Define variables to be plotted on scatter plots:
@@ -218,6 +230,8 @@ if(indic_run_performances){
   print("------------------------------------------------")
   
   source("simulations/run_strategies.R")  
+  source("outputs/make_figure_strategies.R")  
+  source("outputs/make_table_strategies.R")  
 }
 # ------------------------------------------------------------------------------
 

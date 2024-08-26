@@ -129,15 +129,15 @@ lower_bound <- RES$avg_annual_GDPLB_returns - 1.0 * RES$Std_annual_GDPLB_returns
 upper_bound <- RES$avg_annual_GDPLB_returns + 1.0 * RES$Std_annual_GDPLB_returns
 polygon(c(1:maxH,rev(1:maxH)),c(lower_bound,rev(upper_bound)),border = NaN,
         col="#AAAAAA44")
-lines(1:maxH,RES$avg_annual_GDPLB_returns,col="black",lwd=2,lty=2)
+lines(1:maxH,RES$avg_annual_GDPLB_returns,col="dark grey",lwd=2,lty=1)
 
 grid()
 
 legend("topright", # places a legend at the appropriate place c("Health","Defense"), # puts text in the legend
        c("Nominal returns","ILB returns","GDP-LB returns"),
        lty=c(1,1,1), # gives the legend appropriate symbols (lines)
-       lwd=c(2,2,1), # line width
-       col=c("blue","red","black"),
+       lwd=c(2,2,2), # line width
+       col=c("blue","red","dark grey"),
        bg="white",
        #pch=c(3,NaN,NaN),
        seg.len = 2,

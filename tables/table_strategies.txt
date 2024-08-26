@@ -1,0 +1,26 @@
+\begin{table}[ph!]
+\caption{Performances of debt issuance strategies in the calibrated model}
+\label{tab:Strategies}
+\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}ccccccccc}
+\hline
+$(\chi,\kappa_\pi,\kappa_y)$&&$\mathbb{E}(d)$&$\sqrt{\mathbb{V}(d)}$&$q_{95}(d)$&$\mathbb{E}(r)$&$\sqrt{\mathbb{V}(r)}$&$\sqrt{\mathbb{V}(\Delta d)}$&$\mathbb{E}(PD)$&$\mathbb{E}(spd)$\\
+\hline
+$(0.1,0.0,0.0)$ & & $80.25$ & $13.07$ & $99.31$ & $3.97$ & $3.73$ & $7.52$ & $0.20$ & $9.08$ \\
+$(0.1,0.0,0.3)$ & & $82.91$ & $11.09$ & $99.39$ & $4.75$ & $3.22$ & $6.98$ & $0.19$ & $5.94$ \\
+$(0.1,1.0,0.0)$ & & $82.22$ & $11.54$ & $99.26$ & $4.70$ & $3.36$ & $6.96$ & $0.18$ & $4.68$ \\
+$(0.1,1.0,0.3)$ & & $86.22$ & $9.20$ & $100.30$ & $5.69$ & $2.80$ & $6.18$ & $0.22$ & $4.30$ \\
+$(0.9,0.0,0.0)$ & & $84.44$ & $10.77$ & $101.49$ & $4.97$ & $1.91$ & $8.51$ & $0.41$ & $23.03$ \\
+$(0.9,0.0,0.3)$ & & $86.71$ & $9.47$ & $102.00$ & $5.57$ & $1.85$ & $7.42$ & $0.39$ & $17.14$ \\
+$(0.9,1.0,0.0)$ & & $84.40$ & $10.05$ & $99.38$ & $5.04$ & $2.68$ & $7.21$ & $0.22$ & $7.66$ \\
+$(0.9,1.0,0.3)$ & & $93.01$ & $9.44$ & $106.30$ & $7.41$ & $2.99$ & $6.10$ & $0.73$ & $16.87$ \\
+\hline
+$(0.9,0.6,0.3)$ & & $88.55$ & $8.58$ & $101.10$ & $6.10$ & $2.23$ & $6.46$ & $0.33$ & $10.87$ \\
+$(0.9,0.4,0.0)$ & & $83.77$ & $9.96$ & $98.61$ & $4.90$ & $2.09$ & $7.49$ & $0.25$ & $13.49$ \\
+$(0.1,1.0,0.0)$ & & $82.22$ & $11.54$ & $99.26$ & $4.70$ & $3.36$ & $6.96$ & $0.18$ & $4.68$ \\
+\\
+\hline
+\end{tabular*}
+\begin{footnotesize}
+\parbox{\linewidth}{\textit{Notes}: This table shows performance metrics associated with different debt issuance strategies characterized by the issuance of perpetuities of different durations (captured by the coupon decay rate $\chi$), a coefficient of indexation to inflation $\kappa_\pi$ and a coefficient of indexation to real GDP $\kappa_y$. The model is the one whose parameterization is reported in Table~\ref{tab:param}. '$d$' denotes the debt-to-GDP ratio. '$r$' denotes the debt service, including debt indexation (in percent of GDP). '$\sqrt{\mathbb{V}(x)}$' corresponds to the standard deviation of variable $x$; '$PD$' stands for '10-year probability of default' (expressed in percent); '$spd$' stands for '10-year credit spread' (expressed in basis point), '$q_{95}(d)$' is the $95^{th}$ percentile of the debt-to-GDP distribution. The last three rows show the performances of the strategies implying the lowest $\sqrt{\mathbb{V}(d)}$, $q_{95}(d)$, and $\mathbb{E}(PD)$, respectively.}
+\end{footnotesize}
+\end{table}
