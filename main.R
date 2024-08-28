@@ -10,11 +10,11 @@
 rm(list = ls())
 
 # -- Run simulation in demand/supply economies? --------------------------------
-indic_DemSup <- 1
+indic_DemSup <- 0
 # -- Run new estimation? -------------------------------------------------------
-indic_estim <- 1 # binary variable -- if 1, run the whole estimation approach
+indic_estim <- 0 # binary variable -- if 1, run the whole estimation approach
 # -- Run simulation in calibrated economy? -------------------------------------
-indic_run_performances <- 1
+indic_run_performances <- 0
 
 
 
