@@ -6,40 +6,76 @@
 # corresponding author: jean-paul.renne@unil.ch
 # ==============================================================================
 
-# clear workspace:
+# This is the master replication script. Run it from the root of the replication
+# package, e.g.:
+#   setwd("/path/to/PDMAnalyt")
+#   source("main.R")
+# or, from a terminal:
+#   Rscript main.R
+#
+# The default settings below reproduce the calibration tables and figures using
+# the saved model parameters in results/. The estimation and strategy simulations
+# are deliberately off by default because they are substantially slower.
+
+# Clear the workspace to avoid accidental dependence on objects from an
+# interactive R session.
 rm(list = ls())
 
-# -- Run simulation in demand/supply economies? --------------------------------
+# --- Replication switches ------------------------------------------------------
+# Set these flags to 1 to regenerate the corresponding groups of results.
+
+# Demand/supply exercise: creates the stylized-economy tables and figures used
+# in the demand-vs-supply discussion and appendix.
 indic_DemSup <- 0
-# -- Run new estimation? -------------------------------------------------------
-indic_estim <- 0 # binary variable -- if 1, run the whole estimation approach
-# -- Run simulation in calibrated economy? -------------------------------------
+
+# Full model estimation: re-estimates the macro-finance model from the starting
+# values specified below. Leave at 0 to load saved parameters from results/.
+indic_estim <- 0
+
+# Issuance-strategy simulations: computes performance statistics over the grid
+# of maturities and indexation choices. Leave at 0 to avoid the long simulation.
 indic_run_performances <- 0
+# ------------------------------------------------------------------------------
 
 
 
-# --- if estimation: -----------------------------------------------------------
+# --- Estimation/data settings --------------------------------------------------
 start_year  <- 1970 # first year of the estimation sample
+
+# Saved model loaded when indic_estim == 0, and overwritten when
+# indic_estim == 1 and indic_save_model == 1.
 file_with_saved_param <- "res_26082024.Rdat"
+
+# Starting point loaded when indic_estim == 1 and indic_use_last_res == 1.
 file_with_input_param <- "res_24082024.Rdat"
-indic_load_data    <- 0 # update dataset (from FRED and Board for yields)
-indic_use_last_res <- 1 # binary variables -- start from last best param or not
-random_factor      <- .1 # randomization to change initial values
-indic_save_model   <- 1 # binary variables -- say if estimated model is saved
+
+# Refresh the raw dataset from FRED and the Federal Reserve Board. This requires
+# internet access and a valid FRED API key in estimation/load_data.R.
+indic_load_data    <- 0
+
+# If re-estimating, start from file_with_input_param rather than from the generic
+# initialization in estimation/set_ini_model.R.
+indic_use_last_res <- 1
+
+# Standard deviation of the random perturbation applied to starting parameters
+# in each estimation attempt. The seed is fixed below for reproducibility.
+random_factor      <- .1
+
+# If re-estimating, save the final calibrated model to file_with_saved_param.
+indic_save_model   <- 1
 # ------------------------------------------------------------------------------
 
 
 # ------------------------------------------------------------------------------
-# Load packages:
+# Load packages and shared routines.
 library(fredr)
 library(Hmisc)
 library(Rcpp)
 library(RcppEigen)
 library(optimx)
 
-# Load procedures:
 source("procedures/proc_model.R")
-sourceCpp("procedures/library_cpp.cpp") # load C++ functions
+sourceCpp("procedures/library_cpp.cpp")
 # ------------------------------------------------------------------------------
 
 
@@ -76,7 +112,11 @@ if(indic_DemSup){
     }
   }
   
-  # Prepare table showing parameterization and figure showing yield curves:
+  # Output files:
+  #   tables/table_param_DemSup.txt
+  #   tables/table_DemSup_elastsurplus*_nu*.txt
+  #   figures/Figure_expected_returns_DemaSupp.pdf
+  #   figures/Figure_nu_effect_DemaSupp.pdf
   source("outputs/make_table_figure_DemSup.R")
 }
 # ------------------------------------------------------------------------------
@@ -85,16 +125,18 @@ if(indic_DemSup){
 
 
 # ------------------------------------------------------------------------------
-# ---- Model calibration -------------------------------------------------------
+# ---- Data loading and model calibration --------------------------------------
 
-if(indic_load_data==1){# in that case refresh data (from the internet)
+if(indic_load_data==1){
   print(" --- Loading data ---")
   source("estimation/load_data.R")
   print(" --- Loading data: Done ---")
 }else{
   load(file="Data/data.Rda")
 }
-# Resize dataset (based on "start_year"), and compute moment targets:
+
+# Keep the estimation sample starting in start_year and construct the moment
+# targets used by the loss function and by the moment-matching table.
 source("estimation/resize_and_compute_targets.R")
 
 if(indic_estim == 1){
@@ -103,7 +145,7 @@ if(indic_estim == 1){
   # Note: random numbers are used only to randomize starting values
   # in the loss function optimization.
 
-  # Number of regimes:
+  # Number of Markov regimes in the macro block.
   nb_m <- 5
   
   print("")
@@ -121,7 +163,7 @@ if(indic_estim == 1){
   # Maximum value of log(param):
   max_abs_param <- 8
   
-  # Optimization set up:
+  # Optimization setup for the macro block.
   maxit.nlminb <- 50
   maxit.NlMd   <- 2000
   nb_loops     <- 2
@@ -147,10 +189,11 @@ if(indic_estim == 1){
   print(" Calibration of nu_y, nu_pi, and mu_eta")
   print("------------------------------------------------")
   
-  # Calibration of nu_y and nu_pi
+  # Parameters controlling the macroeconomic effect of default.
   Model$nu_y  <- -.05
   Model$nu_pi <- -.021
-  # Modify mu_eta:
+
+  # Mean growth/inflation dynamics after default.
   Model$mu_eta <- .5 * Model$mu_y
   
   print("")
@@ -179,6 +222,8 @@ if(indic_estim == 1){
                   mean_d_in_percent = 80,
                   stdv_d_in_percent = 15)
   
+  # Grid search over fiscal/default parameters. The selected model is saved
+  # below when indic_save_model == 1.
   source("estimation/calibrate_alpha_beta.R")
   
   if(indic_save_model){
@@ -186,10 +231,15 @@ if(indic_estim == 1){
   }
   
 }else{
+  # Fast replication path: load the saved model parameters.
   load(file=paste("results/",file_with_saved_param,sep=""))
 }
 
-# Prepare figures illustrating the model fit:
+# Default outputs produced by every run:
+#   figures/Figure_fit.pdf
+#   figures/Figure_avg_yc.pdf
+#   tables/table_moment_matching.txt
+#   tables/table_param.txt
 source("outputs/make_figures_fit.R")
 source("outputs/make_table_moments.R")
 source("outputs/make_table_param.R")
@@ -199,7 +249,7 @@ source("outputs/make_table_param.R")
 
 
 # ------------------------------------------------------------------------------
-# ---- Analysis of the performances of issuance strategies ---------------------
+# ---- Performance of issuance strategies --------------------------------------
 
 # Specify solution approach:
 nb_grid     <- 30 # number of values per state variable
@@ -217,6 +267,10 @@ max_rr <- .15
 values_of_chi      <- c(.1,.5,.9)
 values_of_kappa_pi <- seq(0,1,by=.2)
 values_of_kappa_y  <- seq(0,.3,by=.1)
+# Add strategy approximating US government debt portfolio:
+values_of_chi      <- c(values_of_chi,Model$chi)
+values_of_kappa_pi <- c(values_of_kappa_pi,1935/25734)
+values_of_kappa_y  <- c(values_of_kappa_y,0)
 
 # Define variables to be plotted on scatter plots:
 outputs4chart <- matrix(NaN,3,2)
@@ -229,9 +283,12 @@ if(indic_run_performances){
   print(" Compute performances of issuance strategies")
   print("------------------------------------------------")
   
+  # Output files:
+  #   results/results_strategies.Rda
+  #   figures/Figure_strategies_perf.pdf
+  #   tables/table_strategies.txt
   source("simulations/run_strategies.R")  
   source("outputs/make_figure_strategies.R")  
   source("outputs/make_table_strategies.R")  
 }
 # ------------------------------------------------------------------------------
-

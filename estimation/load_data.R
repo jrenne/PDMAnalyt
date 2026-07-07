@@ -7,7 +7,12 @@ end.date   <- Sys.Date()
 freq       <- "a"
 frequency  <- 4
 
-fredr_set_key("df65e14c054697a52b4511e77fcfa1f3")
+fred_api_key <- Sys.getenv("FRED_API_KEY")
+if(fred_api_key == ""){
+  stop("Set the FRED_API_KEY environment variable before refreshing data.")
+}
+fredr_set_key(fred_api_key)
+
 start_date <- as.Date(start.date)
 end_date   <- as.Date(end.date)
 f <- function(ticker){
@@ -142,5 +147,4 @@ DATA <- merge(DATA,DAT_GSW_nom,by="date",all=TRUE)
 DATA <- merge(DATA,DAT_GSW_real,by="date",all=TRUE)
 
 save(DATA,file="Data/data.Rda")
-
 

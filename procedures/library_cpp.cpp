@@ -1335,7 +1335,8 @@ Eigen::MatrixXd compute_distri_x(const Eigen::MatrixXd & all_x,
   indicators_x = find_closest_in_vec(x,all_x) ;
   
   for(int i = 0; i < nb_states; i++){
-    px(indicators_x(i,0)-1,0) = px(indicators_x(i,0)-1,0) + p(i,0) ;
+    int k = indicators_x(i,0) - 1;
+    px(k,0) = px(k,0) + p(i,0) ;
   }
   
   return px ;

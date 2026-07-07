@@ -958,20 +958,6 @@ ShadowInt_PD_not <- function(fs,alpha,sigma){
   return(P)
 }
 
-make.entry <- function(x,format.nb,dollar=1){
-  if(dollar==1){
-    output <- paste("$",sprintf(format.nb,x),"$",sep="")
-  }else{
-    output <- sprintf(format.nb,x)
-  }
-  return(output)
-}
-format.nb0 <- paste("%.",0,"f",sep="")
-format.nb1 <- paste("%.",1,"f",sep="")
-format.nb2 <- paste("%.",2,"f",sep="")
-format.nb3 <- paste("%.",3,"f",sep="")
-format.nb4 <- paste("%.",4,"f",sep="")
-format.nb5 <- paste("%.",5,"f",sep="")
 
 
 val2col<-function(z, zlim, col = heat.colors(12), breaks){
@@ -992,4 +978,20 @@ val2col<-function(z, zlim, col = heat.colors(12), breaks){
   colorlevels <- col[((as.vector(z)-breaks[1])/(range(breaks)[2]-range(breaks)[1]))*(length(breaks)-1)+1] # assign colors to heights for each point
   colorlevels
 }
+
+make.entry <- function(x,format.nb,dollar=1){
+  if(dollar==1){
+    output <- paste("$",sprintf(format.nb,x),"$",sep="")
+  }else{
+    output <- sprintf(format.nb,x)
+  }
+  return(output)
+}
+format.nb0 <- paste("%.",0,"f",sep="")
+format.nb1 <- paste("%.",1,"f",sep="")
+format.nb2 <- paste("%.",2,"f",sep="")
+format.nb3 <- paste("%.",3,"f",sep="")
+format.nb4 <- paste("%.",4,"f",sep="")
+format.nb5 <- paste("%.",5,"f",sep="")
+format.nb6 <- paste("%.",6,"f",sep="")
 
