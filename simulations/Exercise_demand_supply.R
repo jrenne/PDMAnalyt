@@ -2,15 +2,25 @@
 # This script runs the demand/supply exercise
 # ==============================================================================
 
-# Create stylized models
+# Create stylized models. Defaults are provided for direct execution of this
+# script; when sourced from main.R, the DemSup_* settings are defined there.
+if(!exists("DemSup_low_pi")) DemSup_low_pi <- .0
+if(!exists("DemSup_med_pi")) DemSup_med_pi <- .03
+if(!exists("DemSup_hig_pi")) DemSup_hig_pi <- .06
+if(!exists("DemSup_low_y"))  DemSup_low_y  <- .0
+if(!exists("DemSup_med_y"))  DemSup_med_y  <- .02
+if(!exists("DemSup_hig_y"))  DemSup_hig_y  <- .04
+if(!exists("DemSup_rho"))    DemSup_rho    <- .8
+if(!exists("DemSup_d_bar"))  DemSup_d_bar  <- .8
+if(!exists("DemSup_plot_nu_y_values")) DemSup_plot_nu_y_values <- c(0,-.1)
 
-low_pi <- .0
-med_pi <- .03
-hig_pi <- .06
+low_pi <- DemSup_low_pi
+med_pi <- DemSup_med_pi
+hig_pi <- DemSup_hig_pi
 
-low_y <- .0
-med_y <- .02
-hig_y <- .04
+low_y <- DemSup_low_y
+med_y <- DemSup_med_y
+hig_y <- DemSup_hig_y
 
 mu_y  <- matrix(c(low_y,med_y,hig_y),ncol=1)
 
@@ -19,7 +29,7 @@ mu_pi_demand  <- matrix(c(low_pi,med_pi,hig_pi),ncol=1)
 # Supply:
 mu_pi_supply  <- matrix(c(hig_pi,med_pi,low_pi),ncol=1)
 
-rho <- .8
+rho <- DemSup_rho
 Omega <- diag(rep(rho,3))
 Omega[1,2] <- 1 - rho
 Omega[3,2] <- 1 - rho
@@ -49,8 +59,8 @@ Model$nu_y <- - abs_nu_y
 # ==============================================================================
 
 res_aux <- compute_determ_steady_state(Model,
-                                       indic_d_bar_from_s_star=0,
-                                       d_bar = .8)
+                                       indic_d_bar_from_s_star=FALSE,
+                                       d_bar = DemSup_d_bar)
 Model$s_star <- res_aux$s_star
 
 Model$mu_eta <- elasticity_of_surpluses * Model$mu_y
@@ -98,10 +108,12 @@ for(i in 1:length(latex.column.names)){
   column_names <- paste(column_names,"&",latex.column.names[i],sep="")
 }
 
+nu_y_caption <- -abs_nu_y
+
 latex_table <- rbind("\\begin{table}[ph!]",
                      paste("\\caption{Performances of debt issuance strategies in stylized versions of the model, $\\mu_\\eta=",
                            elasticity_of_surpluses,"\\times \\mu_y$ and ",
-                           "$\\nu_y = ",ifelse(abs_nu_y<0,"-",""),abs_nu_y,"$",
+                           "$\\nu_y = ",nu_y_caption,"$",
                            "}",sep=""),
                      paste("\\label{tab:DemSup_elast",
                            elasticity_of_surpluses,
@@ -152,6 +164,8 @@ for(chi in values_of_chi){
                c(strat_nominal$avg_spreads[maxH],strat_ILB$avg_spreads[maxH],strat_GDPLB$avg_spreads[maxH]))
     colnames(M) <- names_extensions
     rownames(M) <- latex.column.names
+    message("Demand/supply metrics for ", regime,
+            "-driven economy, chi = ", chi)
     print(M)
     
     count_extension <- 0
@@ -174,7 +188,7 @@ latex_table <- rbind(latex_table,
                      "\\hline",
                      "\\end{tabular*}",
                      "\\begin{footnotesize}",
-                     "\\parbox{\\linewidth}{\\textit{Notes}: This table shows performance metrics associated with three different debt issuance strategies; each strategy consists in issuing a given type of perpetuities: a nominal perpetuity ($\\kappa_\\pi=0$ and $\\kappa_y=0$), an inflation-indexed perpetuity nominal ($\\kappa_\\pi=1$ and $\\kappa_y=0$), and a GDP-indexed perpetuity nominal ($\\kappa_\\pi=1$ and $\\kappa_y=1$). We consider two different values of $\\chi$ (the higher $\\chi$, the higher the average debt maturity). '$d$' denotes the debt-to-GDP ratio. '$r$' denotes the debt service, including debt indexation (in percent of GDP). '$\\sqrt{\\mathbb{V}(x)}$' corresponds to the standard deviation of variable $x$; '$PD$' stands for '10-year probability of default' (expressed in percent); '$spd$' stands for '10-year credit spread' (expressed in basis point), '$q_{95}(d)$' is the $95^{th}$ percentile of the debt-to-GDP distribution.}",
+                     "\\parbox{\\linewidth}{\\textit{Notes}: This table shows performance metrics associated with three debt issuance strategies: a nominal perpetuity ($\\kappa_\\pi=0$ and $\\kappa_y=0$), an inflation-indexed perpetuity ($\\kappa_\\pi=1$ and $\\kappa_y=0$), and a GDP-linked perpetuity ($\\kappa_\\pi=1$ and $\\kappa_y=1$). We consider two values of $\\chi$; a higher $\\chi$ corresponds to a longer average debt maturity. '$d$' denotes the debt-to-GDP ratio. '$r$' denotes the debt service, including indexation costs, as a percent of GDP. '$\\sqrt{\\mathbb{V}(x)}$' is the standard deviation of variable $x$; '$PD$' stands for the 10-year probability of default, expressed in percent; '$spd$' stands for the 10-year credit spread, expressed in basis points; '$q_{95}(d)$' is the $95^{th}$ percentile of the debt-to-GDP distribution.}",
                      "\\end{footnotesize}",
                      "\\end{table}")
 
@@ -203,7 +217,7 @@ for(regime in c("Demand","Supply")){
   Model$kappa_pi <- 0
   Model$kappa_y  <- 0
   
-  for(nu_y in c(0,-.1)){
+  for(nu_y in DemSup_plot_nu_y_values){
     Model$nu_y <- nu_y
     Model_solved <- solve_ToyModel(Model,
                                    grids,nb_iter,
@@ -238,4 +252,3 @@ for(regime in c("Demand","Supply")){
 }
 
 dev.off()
-

@@ -1,7 +1,7 @@
 
 # Resize dataset:
-indic_fst <- which(format(DATA$date,"%Y")==start_year)
-DATA <- DATA[indic_fst:dim(DATA)[1],]
+first_row <- which(format(DATA$date,"%Y")==start_year)
+DATA <- DATA[first_row:dim(DATA)[1],]
 
 # Targeted moments:
 targets <- list(

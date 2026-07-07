@@ -10,6 +10,7 @@ Replication package for Jean-Paul Renne, *An Analytical Framework for Public Deb
 * `procedures/`: shared R and C++ routines used by the model solution and simulations.
 * `simulations/`: scripts for the demand/supply exercise and issuance-strategy analysis.
 * `outputs/`: scripts that create paper figures and LaTeX table fragments.
+* `resources/`: small static resources copied into the output folders.
 * `results/`: saved model estimates and strategy-simulation results.
 * `figures/`: output folder for replicated figures.
 * `tables/`: output folder for replicated LaTeX tables.
@@ -32,6 +33,7 @@ The default run loads the saved calibrated model in `results/res_26082024.Rdat` 
 
 * `figures/Figure_fit.pdf`
 * `figures/Figure_avg_yc.pdf`
+* `figures/formula.pdf`
 * `tables/table_param.txt`
 * `tables/table_moment_matching.txt`
 
@@ -44,7 +46,7 @@ The main switches are near the top of `main.R`.
 Set:
 
 ```r
-indic_DemSup <- 1
+indic_DemSup <- TRUE
 ```
 
 to regenerate the demand/supply exercise outputs:
@@ -57,7 +59,7 @@ to regenerate the demand/supply exercise outputs:
 Set:
 
 ```r
-indic_run_performances <- 1
+indic_run_performances <- TRUE
 ```
 
 to regenerate the issuance-strategy simulation outputs:
@@ -69,10 +71,10 @@ to regenerate the issuance-strategy simulation outputs:
 Set:
 
 ```r
-indic_estim <- 1
+indic_estim <- TRUE
 ```
 
-to re-estimate the model. This is slower than the default run. If `indic_save_model <- 1`, the final model is saved to the file named by `file_with_saved_param`.
+to re-estimate the model. This is slower than the default run. If `indic_save_model <- TRUE`, the final model is saved to the file named by `file_with_saved_param`.
 
 ## Rebuilding The Data
 
@@ -83,7 +85,7 @@ The default replication uses the frozen dataset:
 To rebuild the dataset from public sources, set:
 
 ```r
-indic_load_data <- 1
+indic_load_data <- TRUE
 ```
 
 near the top of `main.R`.
@@ -95,6 +97,10 @@ export FRED_API_KEY="your_fred_key"
 ```
 
 The rebuilt dataset is saved as `Data/data.Rda`. Public macroeconomic data are revised over time, so an updated-data run may not reproduce the frozen paper input exactly.
+
+Large raw Federal Reserve yield-curve CSV files are not stored in the repository; `estimation/load_data.R` downloads them when the data are rebuilt. The default replication uses the compact frozen file `Data/data.Rda`.
+
+The illustrative default-probability chart `figures/formula.pdf` is copied from `resources/formula.pdf`, which stores the publication-quality TikZ/LaTeX version used in the paper.
 
 ## R Package Dependencies
 

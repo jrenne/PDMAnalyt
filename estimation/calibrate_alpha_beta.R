@@ -36,7 +36,7 @@ for(alpha in candidate_alpha_values){
       
       # Determine s_star to have 
       res_aux <- compute_determ_steady_state(Model,
-                                             indic_d_bar_from_s_star = 0,
+                                             indic_d_bar_from_s_star = FALSE,
                                              d_bar = d_bar)
       Model$s_star <- res_aux$s_star
       
@@ -107,4 +107,3 @@ plot(grids$all_d,best$distri_d,type="l")
 
 distri_rr  <- compute_distri_x(grids$all_rr,Model_solved$rr,best$p)
 plot(grids$all_r,distri_rr,type="l")
-

@@ -1,5 +1,5 @@
 \begin{table}[ph!]
-\caption{Performances of debt issuance strategies in stylized versions of the model, $\mu_\eta=0\times \mu_y$ and $\nu_y = 0.1$}
+\caption{Performances of debt issuance strategies in stylized versions of the model, $\mu_\eta=0\times \mu_y$ and $\nu_y = -0.1$}
 \label{tab:DemSup_elast0_nu0.1}
 \begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}ccccccccc}
 \hline
@@ -11,34 +11,34 @@
 \\
 &&\multicolumn{8}{l}{Demand-driven economy ($\chi=0.2$)}\\
 \hline
-Nominal &&$85.35$&$7.82$&$96.52$&$4.06$&$1.88$&$3.01$&$0.79$&$15.49$ \\
-ILB &&$88.64$&$5.82$&$95.59$&$4.79$&$2.39$&$2.38$&$0.98$&$15.32$ \\
-GDP-LB &&$91.66$&$6.23$&$99.34$&$5.21$&$3.20$&$2.43$&$1.64$&$19.37$ \\
+Nominal &&$84.73$&$7.91$&$96.12$&$3.99$&$1.78$&$2.99$&$0.74$&$14.36$ \\
+ILB &&$88.32$&$6.46$&$96.97$&$4.75$&$2.39$&$2.38$&$1.02$&$15.31$ \\
+GDP-LB &&$92.07$&$6.41$&$99.58$&$5.33$&$3.17$&$2.45$&$1.76$&$20.50$ \\
 \\
 &&\multicolumn{8}{l}{Supply-driven economy ($\chi=0.2$)}\\
 \hline
-Nominal &&$93.82$&$6.01$&$101.02$&$5.60$&$0.52$&$2.33$&$2.15$&$26.91$ \\
-ILB &&$88.70$&$5.92$&$96.07$&$4.88$&$1.37$&$2.38$&$1.00$&$15.60$ \\
-GDP-LB &&$91.48$&$6.08$&$99.15$&$5.30$&$0.70$&$2.41$&$1.58$&$18.91$ \\
+Nominal &&$94.68$&$6.71$&$103.74$&$5.76$&$0.64$&$2.34$&$2.55$&$30.29$ \\
+ILB &&$88.28$&$6.47$&$96.92$&$4.82$&$1.39$&$2.38$&$1.01$&$15.21$ \\
+GDP-LB &&$91.94$&$6.36$&$99.51$&$5.39$&$0.79$&$2.45$&$1.73$&$20.46$ \\
 \\
 \hline
 \multicolumn{ 10 }{l}{Coupon decay rate $\chi= 0.9 $}\\
 \\
 &&\multicolumn{8}{l}{Demand-driven economy ($\chi=0.9$)}\\
 \hline
-Nominal &&$76.37$&$11.68$&$92.95$&$2.80$&$0.34$&$3.03$&$0.42$&$9.53$ \\
-ILB &&$84.25$&$7.80$&$94.88$&$4.11$&$1.63$&$2.33$&$0.65$&$10.96$ \\
-GDP-LB &&$92.72$&$6.16$&$99.71$&$5.37$&$3.16$&$2.37$&$1.88$&$22.50$ \\
+Nominal &&$76.05$&$11.63$&$92.50$&$2.75$&$0.34$&$3.02$&$0.40$&$8.70$ \\
+ILB &&$84.34$&$7.88$&$95.10$&$4.12$&$1.63$&$2.33$&$0.68$&$11.01$ \\
+GDP-LB &&$93.22$&$6.11$&$99.86$&$5.47$&$3.19$&$2.38$&$2.00$&$23.27$ \\
 \\
 &&\multicolumn{8}{l}{Supply-driven economy ($\chi=0.9$)}\\
 \hline
-Nominal &&$95.95$&$6.86$&$104.81$&$5.92$&$0.41$&$2.30$&$3.00$&$35.75$ \\
-ILB &&$84.03$&$7.82$&$94.86$&$4.19$&$1.87$&$2.33$&$0.64$&$10.81$ \\
-GDP-LB &&$93.93$&$5.59$&$99.81$&$5.58$&$0.67$&$2.34$&$2.12$&$25.21$ \\
+Nominal &&$98.03$&$7.60$&$108.84$&$6.24$&$0.55$&$2.27$&$3.93$&$44.42$ \\
+ILB &&$83.46$&$7.91$&$94.69$&$4.10$&$1.87$&$2.33$&$0.61$&$9.92$ \\
+GDP-LB &&$94.02$&$5.62$&$99.86$&$5.62$&$0.69$&$2.35$&$2.15$&$24.84$ \\
 \\
 \hline
 \end{tabular*}
 \begin{footnotesize}
-\parbox{\linewidth}{\textit{Notes}: This table shows performance metrics associated with three different debt issuance strategies; each strategy consists in issuing a given type of perpetuities: a nominal perpetuity ($\kappa_\pi=0$ and $\kappa_y=0$), an inflation-indexed perpetuity nominal ($\kappa_\pi=1$ and $\kappa_y=0$), and a GDP-indexed perpetuity nominal ($\kappa_\pi=1$ and $\kappa_y=1$). We consider two different values of $\chi$ (the higher $\chi$, the higher the average debt maturity). '$d$' denotes the debt-to-GDP ratio. '$r$' denotes the debt service, including debt indexation (in percent of GDP). '$\sqrt{\mathbb{V}(x)}$' corresponds to the standard deviation of variable $x$; '$PD$' stands for '10-year probability of default' (expressed in percent); '$spd$' stands for '10-year credit spread' (expressed in basis point), '$q_{95}(d)$' is the $95^{th}$ percentile of the debt-to-GDP distribution.}
+\parbox{\linewidth}{\textit{Notes}: This table shows performance metrics associated with three debt issuance strategies: a nominal perpetuity ($\kappa_\pi=0$ and $\kappa_y=0$), an inflation-indexed perpetuity ($\kappa_\pi=1$ and $\kappa_y=0$), and a GDP-linked perpetuity ($\kappa_\pi=1$ and $\kappa_y=1$). We consider two values of $\chi$; a higher $\chi$ corresponds to a longer average debt maturity. '$d$' denotes the debt-to-GDP ratio. '$r$' denotes the debt service, including indexation costs, as a percent of GDP. '$\sqrt{\mathbb{V}(x)}$' is the standard deviation of variable $x$; '$PD$' stands for the 10-year probability of default, expressed in percent; '$spd$' stands for the 10-year credit spread, expressed in basis points; '$q_{95}(d)$' is the $95^{th}$ percentile of the debt-to-GDP distribution.}
 \end{footnotesize}
 \end{table}

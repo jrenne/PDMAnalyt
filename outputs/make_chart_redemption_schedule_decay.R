@@ -6,7 +6,7 @@
 make_chart_issuances_data <- function(auctions,GDP,
                                       first_year,first_quarter,
                                       last_year=first_year,last_quarter,
-                                      indic_TIPS="No",
+                                      tips_filter="No",
                                       main.t="",
                                       indic_yearly=TRUE){
   
@@ -29,13 +29,13 @@ make_chart_issuances_data <- function(auctions,GDP,
       count_quarter <- count_quarter + 1
       
       DATE     <- as.Date(paste(year_issuances,"-",3*Q-2,"-01",sep=""))
-      indic_q  <- which(GDP$DATE==DATE)
-      GDP_year <- GDP$GDP[indic_q] * 10^9
+      gdp_index  <- which(GDP$DATE==DATE)
+      GDP_year <- GDP$GDP[gdp_index] * 10^9
       
       # Select auctions taking place in the relevant quarter:
       auctions.red <- 
         subset(auctions,
-               (Auction.year==year_issuances)&(Auction.quarter==Q)&(TIPS==indic_TIPS))
+               (Auction.year==year_issuances)&(Auction.quarter==Q)&(TIPS==tips_filter))
       Issuances <- matrix(0,max_maturity,1)
       # count <- 0
       # for(m in all_maturities){
@@ -65,7 +65,7 @@ make_chart_issuances_data <- function(auctions,GDP,
     }
   }
   
-  if(indic_yearly){
+  if(isTRUE(indic_yearly)){
     # check that max_maturity multiple of 4: 
     if(4*trunc(max_maturity/4)!=max_maturity){
       new_max_maturity <- 4*(1 + trunc(max_maturity/4))
@@ -120,7 +120,7 @@ make_chart_issuances_data <- function(auctions,GDP,
 make_chart_schedule_data <- function(auctions,GDP,
                                      first_year,first_quarter,
                                      last_year,last_quarter,
-                                     indic_TIPS="No",
+                                     tips_filter="No",
                                      main.t = "",
                                      indic_yearly=TRUE){
   
@@ -141,8 +141,8 @@ make_chart_schedule_data <- function(auctions,GDP,
       count_quarter <- count_quarter + 1
       
       DATE     <- as.Date(paste(year_issuances,"-",3*Q-2,"-01",sep=""))
-      indic_q  <- which(GDP$DATE==DATE)
-      GDP_year <- GDP$GDP[indic_q] * 10^9
+      gdp_index  <- which(GDP$DATE==DATE)
+      GDP_year <- GDP$GDP[gdp_index] * 10^9
       
       DATE_year    <- as.numeric(format(DATE,"%Y"))
       DATE_month   <- as.numeric(format(DATE,"%m"))
@@ -150,7 +150,7 @@ make_chart_schedule_data <- function(auctions,GDP,
       
       auctions$alive <- auctions$Maturity.Date > DATE
       auctions.red   <- subset(auctions,
-                               (alive==1)&(Issue.Date<DATE)&(TIPS==indic_TIPS))
+                               (alive==1)&(Issue.Date<DATE)&(TIPS==tips_filter))
       auctions.red$residual_maturity_in_quarters <-
         4*(auctions.red$Maturing.year - DATE_year) +
         auctions.red$Maturing.quarter - DATE_quarter
@@ -169,7 +169,7 @@ make_chart_schedule_data <- function(auctions,GDP,
     }
   }
   
-  if(indic_yearly){
+  if(isTRUE(indic_yearly)){
     # check that max_maturity multiple of 4: 
     if(4*trunc(max_maturity/4)!=max_maturity){
       new_max_maturity <- 4*(1 + trunc(max_maturity/4))
@@ -281,7 +281,7 @@ auctions$Maturity.in.years    <- auctions$Maturing.year - auctions$Auction.year
 #                                                     first_quarter=1,
 #                                                     last_year = 2023,
 #                                                     last_quarter = 4,
-#                                                     indic_TIPS="No",
+#                                                     tips_filter="No",
 #                                                     main.t = "Issuances - nominal bonds",
 #                                                     indic_yearly=TRUE)
 # res_Issuances_data_ILB <- make_chart_issuances_data(auctions,GDP,
@@ -289,7 +289,7 @@ auctions$Maturity.in.years    <- auctions$Maturing.year - auctions$Auction.year
 #                                                     first_quarter=1,
 #                                                     last_year = 2023,
 #                                                     last_quarter = 4,
-#                                                     indic_TIPS="Yes",
+#                                                     tips_filter="Yes",
 #                                                     main.t = "Issuances - ILBs",
 #                                                     indic_yearly=TRUE)
 
@@ -304,7 +304,7 @@ res_Schedule_data_nom <- make_chart_schedule_data(auctions,GDP,
                                                   first_quarter=1,
                                                   last_year = 2023,
                                                   last_quarter = 4,
-                                                  indic_TIPS = "No",
+                                                  tips_filter = "No",
                                                   main.t = "",
                                                   indic_yearly=TRUE)
 lines(.10 * .84^(0:30),lwd=2,col="red")
@@ -316,7 +316,6 @@ dev.off()
 #                                                   first_quarter=1,
 #                                                   last_year = 2023,
 #                                                   last_quarter = 4,
-#                                                   indic_TIPS = "Yes",
+#                                                   tips_filter = "Yes",
 #                                                   main.t = "Repayment schedule - ILBs",
 #                                                   indic_yearly=TRUE)
-

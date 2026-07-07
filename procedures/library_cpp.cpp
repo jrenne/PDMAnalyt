@@ -543,9 +543,8 @@ Rcpp::List compute_SDF_D(const Rcpp::List Model,
       aux2 = mult(aux2,1 - gamma) ;
       aux2 = (aux2.array()).exp() ;
       aux2 = add(aux2,-1) ;
+      // Add the incremental default term in Eq. (A.36).
       aux = (aux.array() * aux2.array()).array() * all_proba_def.array() ;
-      aux = aux.array() * aux2.array() ;
-      aux = aux.array() * all_proba_def.array() ;
       
       E = E + aux * vec1 ;
       logE = (E.array()).log() ;
@@ -887,7 +886,6 @@ Rcpp::List solve_ToyModel(const Rcpp::List Model,
   int nb_states  = nb_grid_d * nb_grid_d * nb_grid_rr * nb_m ;
   int nb_eps     = all_eps.rows() ;
   
-  //XXXXX
   //Rcpp::List res_stat_distr_and_rbar = compute_stat_distri_and_rbar(Model) ;
   Eigen::MatrixXd expmuf0  = Eigen::MatrixXd::Zero(nb_m, 1) ;
   Eigen::MatrixXd expmuf1  = Eigen::MatrixXd::Zero(nb_m, 1) ;
@@ -914,7 +912,7 @@ Rcpp::List solve_ToyModel(const Rcpp::List Model,
   Eigen::MatrixXd rr  = Eigen::MatrixXd::Zero(nb_states, 1) ;
   Eigen::MatrixXd Pi  = Eigen::MatrixXd::Zero(nb_states, 1) ;
   Eigen::MatrixXd Dy  = Eigen::MatrixXd::Zero(nb_states, 1) ;
-  Eigen::MatrixXd s_m = Eigen::MatrixXd::Zero(nb_states, 1) ;
+  Eigen::MatrixXd expected_s_m = Eigen::MatrixXd::Zero(nb_states, 1) ;
   
   Eigen::MatrixXd all_rr_tp1 = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
   Eigen::MatrixXd all_d_tp1  = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
@@ -961,7 +959,6 @@ Rcpp::List solve_ToyModel(const Rcpp::List Model,
   Eigen::MatrixXd OnepChiPstar = Eigen::MatrixXd::Zero(1, nb_m) ;
   Pstar        = (vec_1_m.transpose() * Mlast * (I_m - mult(Mbetw,chi)).inverse() * M1rst).transpose() ;
   OnepChiPstar = add(mult(Pstar.transpose(),chi),1) ;
-  //XXXXX
   rstar = add(Pstar.cwiseInverse(), - 1 + chi) ; // will be used to initialize q
   
   Eigen::MatrixXd Mat_1 = Eigen::MatrixXd::Constant(nb_states, nb_m * nb_eps, 1) ;
@@ -971,7 +968,8 @@ Rcpp::List solve_ToyModel(const Rcpp::List Model,
   rr  = kronecker_cpp(kronecker_cpp(kronecker_cpp(vec_1_m,all_rr)  ,vec_1_d),vec_1_d) ;
   Pi  = kronecker_cpp(kronecker_cpp(kronecker_cpp(mu_pi,  vec_1_rr),vec_1_d),vec_1_d) ;
   Dy  = kronecker_cpp(kronecker_cpp(kronecker_cpp(mu_y,   vec_1_rr),vec_1_d),vec_1_d) ;
-  s_m = kronecker_cpp(kronecker_cpp(kronecker_cpp(mu_eta, vec_1_rr),vec_1_d),vec_1_d) ;
+  // Conditional mean of the surplus-regime component, E_t[mu_eta' m_{t+1}].
+  expected_s_m = kronecker_cpp(kronecker_cpp(kronecker_cpp(Omega * mu_eta, vec_1_rr),vec_1_d),vec_1_d) ;
   
   Eigen::MatrixXd all_eps_tp1 = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
   Eigen::MatrixXd all_Pi_tp1  = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
@@ -996,7 +994,7 @@ Rcpp::List solve_ToyModel(const Rcpp::List Model,
   Eigen::MatrixXd all_Dy_t  = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
   Eigen::MatrixXd all_q_t   = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
   Eigen::MatrixXd all_q0_t  = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
-  Eigen::MatrixXd all_s_m_t = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
+  Eigen::MatrixXd all_expected_s_m_t = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
   
   Eigen::MatrixXd Matrix_beta = Eigen::MatrixXd::Constant(nb_states, nb_m * nb_eps, beta) ;
   
@@ -1015,7 +1013,7 @@ Rcpp::List solve_ToyModel(const Rcpp::List Model,
   all_Dy_t  = Dy  * vec_1_m_eps.transpose() ;
   all_q_t   = q   * vec_1_m_eps.transpose() ;
   all_q0_t  = q0  * vec_1_m_eps.transpose() ;
-  all_s_m_t = s_m * vec_1_m_eps.transpose() ;
+  all_expected_s_m_t = expected_s_m * vec_1_m_eps.transpose() ;
   
   Eigen::MatrixXd Probas   = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
   Probas = kronecker_cpp(kronecker_cpp(Omega,proba_eps.transpose()),vec_1_d2r) ;
@@ -1031,7 +1029,7 @@ Rcpp::List solve_ToyModel(const Rcpp::List Model,
   
   Eigen::MatrixXd all_eta_tp1 = Eigen::MatrixXd::Zero(nb_states, nb_m * nb_eps) ;
   all_eta_tp1 = all_eps_tp1 +
-    vec_1_x * kronecker_cpp(mu_eta.transpose(), vec_1_eps.transpose()) - all_s_m_t ;
+    vec_1_x * kronecker_cpp(mu_eta.transpose(), vec_1_eps.transpose()) - all_expected_s_m_t ;
   
   Eigen::MatrixXd seq1d = seqEigen(1,nb_grid_d) ;
   Eigen::MatrixXd seq1m = seqEigen(1,nb_m) ;

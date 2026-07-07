@@ -1,4 +1,15 @@
 
+if(!exists("outputs")){
+  outputs <- c("mean_d","stdv_d","DaR95","mean_rr","stdv_rr",
+               "stdv_Delta_d","avg_PD[maxH]","avg_spreads[maxH]")
+}
+if(!exists("latex.column.names")){
+  latex.column.names <- c("$\\mathbb{E}(d)$","$\\sqrt{\\mathbb{V}(d)}$",
+                          "$q_{95}(d)$",
+                          "$\\mathbb{E}(r)$","$\\sqrt{\\mathbb{V}(r)}$",
+                          "$\\sqrt{\\mathbb{V}(\\Delta d)}$",
+                          "$\\mathbb{E}(PD)$","$\\mathbb{E}(spd)$")
+}
 
 min_chi <- min(parameters[,"chi"])
 max_chi <- max(parameters[,"chi"])
@@ -80,12 +91,12 @@ latex_table <- rbind("\\begin{table}[ph!]",
 count_case <- 0
 for(case in 1:dim(matrix_values_4table)[1]){
   count_case <- count_case + 1
-  indic_in_M <- which((matrix_values_4table[case,"chi"]==parameters[,"chi"])&
+  rows_in_M <- which((matrix_values_4table[case,"chi"]==parameters[,"chi"])&
                         (matrix_values_4table[case,"kappa_pi"]==parameters[,"kappa_pi"])&
                         (matrix_values_4table[case,"kappa_y"]==parameters[,"kappa_y"]))
   this.line <- paste(names_cases[count_case],"&")
   for(output in outputs){
-    this.line <- paste(this.line,"&",make.entry(M[indic_in_M,output],format.nb2))
+    this.line <- paste(this.line,"&",make.entry(M[rows_in_M,output],format.nb2))
   }
   this.line <- paste(this.line,"\\\\")
   if(case == dim(matrix_values_4table)[1] - 2){
@@ -102,7 +113,7 @@ latex_table <- rbind(latex_table,
                      "\\hline",
                      "\\end{tabular*}",
                      "\\begin{footnotesize}",
-                     "\\parbox{\\linewidth}{\\textit{Notes}: This table shows performance metrics associated with different debt issuance strategies characterized by the issuance of perpetuities of different durations (captured by the coupon decay rate $\\chi$), a coefficient of indexation to inflation $\\kappa_\\pi$ and a coefficient of indexation to real GDP $\\kappa_y$. The model is the one whose parameterization is reported in Table~\\ref{tab:param}. '$d$' denotes the debt-to-GDP ratio. '$r$' denotes the debt service, including debt indexation (in percent of GDP). '$\\sqrt{\\mathbb{V}(x)}$' corresponds to the standard deviation of variable $x$; '$PD$' stands for '10-year probability of default' (expressed in percent); '$spd$' stands for '10-year credit spread' (expressed in basis point), '$q_{95}(d)$' is the $95^{th}$ percentile of the debt-to-GDP distribution. The last three rows show the performances of the strategies implying the lowest $\\sqrt{\\mathbb{V}(d)}$, $q_{95}(d)$, and $\\mathbb{E}(PD)$, respectively.}",
+                     "\\parbox{\\linewidth}{\\textit{Notes}: This table shows performance metrics associated with debt issuance strategies characterized by the coupon decay rate $\\chi$, the coefficient of indexation to inflation $\\kappa_\\pi$, and the coefficient of indexation to real GDP $\\kappa_y$. The model is the one whose parameterization is reported in Table~\\ref{tab:param}. '$d$' denotes the debt-to-GDP ratio. '$r$' denotes the debt service, including indexation costs, as a percent of GDP. '$\\sqrt{\\mathbb{V}(x)}$' is the standard deviation of variable $x$; '$PD$' stands for the 10-year probability of default, expressed in percent; '$spd$' stands for the 10-year credit spread, expressed in basis points; '$q_{95}(d)$' is the $95^{th}$ percentile of the debt-to-GDP distribution. The last three rows show the performances of the strategies implying the lowest $\\sqrt{\\mathbb{V}(d)}$, $q_{95}(d)$, and $\\mathbb{E}(PD)$, respectively.}",
                      "\\end{footnotesize}",
                      "\\end{table}")
 
@@ -114,5 +125,3 @@ latex.file <- paste(name.of.file,
                     #"_elastsurplus",elasticity_of_surpluses,
                     ".txt", sep="")
 write(latex_table, paste("tables/",latex.file,sep=""))
-
-

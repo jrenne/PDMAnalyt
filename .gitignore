@@ -2,3 +2,10 @@
 .Rhistory
 .RData
 .Ruserdata
+Rplots.pdf
+tmp/
+
+# Downloaded raw inputs rebuilt by estimation/load_data.R
+Data/feds200628.csv
+Data/feds200805.csv
+Data/Treasury_Bulletin_*.doc

@@ -1,7 +1,7 @@
 
 print("---- New model estimation (macro block) ----")
 
-if(indic_use_last_res){
+if(isTRUE(indic_use_last_res)){
   load(file=paste("results/",file_with_input_param,sep=""))
 }else{
   source("estimation/set_ini_model.R")
@@ -37,4 +37,3 @@ compute_total_distance(param,targets,Model_ini)
 Model <- make_model(param,Model_ini)
 
 source("outputs/make_chart_fit.R")
-

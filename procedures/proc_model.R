@@ -60,14 +60,14 @@ solve_ToyModel_notRcpp <- function(Model,grids,
   rr    <- vec_ones_m  %x% all_rr      %x% vec_ones_d %x% vec_ones_d
   Pi    <- mu_pi       %x% vec_ones_rr %x% vec_ones_d %x% vec_ones_d
   Dy    <- mu_y        %x% vec_ones_rr %x% vec_ones_d %x% vec_ones_d
-  s_m   <- mu_eta      %x% vec_ones_rr %x% vec_ones_d %x% vec_ones_d
+  expected_s_m <- (Omega %*% mu_eta) %x% vec_ones_rr %x% vec_ones_d %x% vec_ones_d
   
   all_d_t     <- matrix(d,   nb_states,nb_eps*nb_m)
   all_d_t_1   <- matrix(d_1, nb_states,nb_eps*nb_m)
   all_rr_t    <- matrix(rr,  nb_states,nb_eps*nb_m)
   all_Pi_t    <- matrix(Pi,  nb_states,nb_eps*nb_m)
   all_Dy_t    <- matrix(Dy,  nb_states,nb_eps*nb_m)
-  all_s_m_t   <- matrix(s_m, nb_states,nb_eps*nb_m)
+  all_expected_s_m_t <- matrix(expected_s_m, nb_states, nb_eps * nb_m)
   
   Dlast <- diag(c(exp(mu_f1)))
   Dbetw <- diag(c(exp(mu_f0 + mu_f1)))
@@ -90,7 +90,7 @@ solve_ToyModel_notRcpp <- function(Model,grids,
     matrix(mu_f0 %x% vec_ones_rr %x% vec_ones_d %x% vec_ones_d,nb_states,nb_eps * nb_m)
   all_OnepChiPstar <- t(matrix(OnepChiPstar %x% vec_ones_eps, nb_eps * nb_m,nb_states))
   all_eta_tp1      <- all_eps_tp1 +
-    t(matrix(mu_eta %x% vec_ones_eps, nb_eps * nb_m,nb_states)) - all_s_m_t
+    t(matrix(mu_eta %x% vec_ones_eps, nb_eps * nb_m,nb_states)) - all_expected_s_m_t
   
   # Probas <- (Omega %x% matrix(1/nb_eps,1,nb_eps)) %x%
   #   matrix(1,nb_grid_d^2*nb_grid_rr,1)
@@ -103,6 +103,8 @@ solve_ToyModel_notRcpp <- function(Model,grids,
   
   all_zeta_t   <- exp((kappa_pi - 1) * all_Pi_t   + (kappa_y - 1) * all_Dy_t)
   all_zeta_tp1 <- exp((kappa_pi - 1) * all_Pi_tp1 + (kappa_y - 1) * all_Dy_tp1)
+  all_zeta_bar_t   <- exp(- all_Pi_t - all_Dy_t)
+  all_zeta_bar_tp1 <- exp(- all_Pi_tp1 - all_Dy_tp1)
   
   indicators_d_t   <- matrix(1:nb_grid_d,nb_states,nb_eps*nb_m)
   indicators_m_tp1 <- t(matrix((1:nb_m) %x% vec_ones_eps,nb_m*nb_eps,nb_states))
@@ -114,16 +116,15 @@ solve_ToyModel_notRcpp <- function(Model,grids,
   
   if(nb_iter>0){
     for(i in 1:nb_iter){
-      print(i)
+      message("Fallback R solver iteration ", i, "/", nb_iter)
       
       # update all_q matrix:
       all_q_t  <- matrix(q,nb_states,nb_eps*nb_m)
       
-      all_rr_tp1 <- all_q_t * all_zeta_tp1 * (all_d_t - chi * all_zeta_t * all_d_t_1) + 
-        chi * all_zeta_tp1 * all_rr_t
-      # all_d_tp1  <- all_zeta_tp1 * all_d_t - beta * (all_d_t - d_star) -
-      #   all_eta_tp1 + all_rr_tp1
-      all_d_tp1  <- all_zeta_tp1 * all_d_t - s_star - beta * all_d_t -
+      all_rr_tp1 <- (all_zeta_tp1 - all_zeta_bar_tp1) * all_d_t +
+        all_q_t * all_zeta_tp1 * (all_d_t - chi * all_zeta_t * all_d_t_1) +
+        chi * all_zeta_tp1 * (all_rr_t - (all_zeta_t - all_zeta_bar_t) * all_d_t_1)
+      all_d_tp1  <- all_zeta_bar_tp1 * all_d_t - s_star - beta * all_d_t -
         all_eta_tp1 + all_rr_tp1
       
       # Match the previous states to the closest ones in the grid
@@ -156,13 +157,12 @@ solve_ToyModel_notRcpp <- function(Model,grids,
       E0 <- exp(all_f_tp1) * ((1 + all_q0_tp1)/(1 + all_q0_tp1 - chi) +
                                 all_proba_def * (exp_nu*all_OnepChiPstar -
                                                    (1 + all_q0_tp1)/(1 + all_q0_tp1 - chi)))
-      Q0 <- (chi - 1 + 1/E0) * Probas
-      q0 <- apply(Q0,1,sum)
+      q0 <- chi - 1 + 1/apply(E0 * Probas,1,sum)
       
       # Compute change in q:
       chges_in_q <- q - q_1
-      print(paste("Max chge in q (over states): ",max(abs(chges_in_q)),sep=""))
-      print(paste("Mean chge in q (over states): ",mean(abs(chges_in_q)),sep=""))
+      message("Max change in q over states: ", max(abs(chges_in_q)))
+      message("Mean change in q over states: ", mean(abs(chges_in_q)))
       q_1 <- q
     }
   }
@@ -642,7 +642,8 @@ KH_filter_notRcpp <- function(F, M, N, Omega){
 run_strategy <- function(Model_solved,
                          maxH,
                          nb_iter4probas = 1000,
-                         nb_iter_sdf){
+                         nb_iter_sdf,
+                         p = NULL){
   
   # Compute bond prices (no default):
   res_LTprices <- compute_LTRF_bond_prices(Model_solved$Model,maxH)
@@ -663,8 +664,12 @@ run_strategy <- function(Model_solved,
   res_prices_RF <- compute_bond_prices(Model_solved_RF, maxH,
                                        nb_iter_sdf)
   
-  # Compute unconditional distribution:
-  p <- compute_uncond_distri(Model_solved$indicators_x,Model_solved$Probas,nb_iter4probas)
+  # Compute unconditional distribution, unless already computed by the caller.
+  if(is.null(p)){
+    p <- compute_uncond_distri(Model_solved$indicators_x,
+                               Model_solved$Probas,
+                               nb_iter4probas)
+  }
   
   # Compute cost and risk measures: --------------------------------------------
   
@@ -817,7 +822,7 @@ prepare_and_solve_3 <- function(Model,grids,
   Model_nominal$kappa_y  <- 0
   # Correct chi:
   Model_nominal$chi <- Model$chi / exp(Model_nominal$kappa_pi*mean_pi + Model_nominal$kappa_y*mean_y)
-  print("--- Solving nominal-bond model ---")
+  message("--- Solving nominal-bond model ---")
   Model_solved_nominal <- solve_ToyModel(Model_nominal,
                                          grids,
                                          nb_iter = nb_iter,
@@ -829,7 +834,7 @@ prepare_and_solve_3 <- function(Model,grids,
   Model_ILB$kappa_y  <- 0
   # Correct chi:
   Model_ILB$chi <- Model$chi / exp(Model_ILB$kappa_pi*mean_pi + Model_ILB$kappa_y*mean_y)
-  print("--- Solving ILB model ---")
+  message("--- Solving ILB model ---")
   Model_solved_ILB <- solve_ToyModel(Model_ILB,
                                       grids,
                                       nb_iter = nb_iter,
@@ -841,7 +846,7 @@ prepare_and_solve_3 <- function(Model,grids,
   Model_GDPLB$kappa_y  <- 1
   # Correct chi:
   Model_GDPLB$chi <- Model$chi / exp(Model_GDPLB$kappa_pi*mean_pi + Model_GDPLB$kappa_y*mean_y)
-  print("--- Solving GDPLB model ---")
+  message("--- Solving GDPLB model ---")
   Model_solved_GDPLB <- solve_ToyModel(Model_GDPLB,
                                        grids,
                                        nb_iter = nb_iter,
@@ -884,7 +889,7 @@ make_grid <- function(nb_grid,min_d=0,max_d,min_rr=0,max_rr,
 
 
 compute_determ_steady_state <- function(Model,
-                                        indic_d_bar_from_s_star = 1,
+                                        indic_d_bar_from_s_star = TRUE,
                                         d_bar = .8){
   
   # Compute average growth and inflation:
@@ -910,7 +915,7 @@ compute_determ_steady_state <- function(Model,
   s_star <- Model$s_star
   beta   <- Model$beta
   
-  if(indic_d_bar_from_s_star == 1){
+  if(isTRUE(indic_d_bar_from_s_star)){
     d_bar <- - s_star/(1 + beta - zeta_bar * (1 + q_bar))
   }else{
     s_star <- - d_bar * (1 + beta - zeta_bar * (1 + q_bar))
@@ -951,7 +956,8 @@ interpolate_quantile <- function(all_x,distri_x,proba){
 }
 
 ShadowInt_PD_not <- function(fs,alpha,sigma){
-  # values.fs are the values of the (log) fiscal space
+  # fs is fiscal space d_star - d; the default intensity is positive when
+  # the noisy fiscal space d_star + nu - d is negative.
   P <- pnorm(fs/sigma) + 
     exp(alpha*fs + alpha^2 * sigma^2/2) * (1 - pnorm(fs/sigma + sigma * alpha))
   P <- 1 - P
@@ -994,4 +1000,3 @@ format.nb3 <- paste("%.",3,"f",sep="")
 format.nb4 <- paste("%.",4,"f",sep="")
 format.nb5 <- paste("%.",5,"f",sep="")
 format.nb6 <- paste("%.",6,"f",sep="")
-

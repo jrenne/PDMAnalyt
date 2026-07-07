@@ -11,34 +11,34 @@
 \\
 &&\multicolumn{8}{l}{Demand-driven economy ($\chi=0.2$)}\\
 \hline
-Nominal &&$85.62$&$8.64$&$98.33$&$4.15$&$1.76$&$3.43$&$0.95$&$7.43$ \\
-ILB &&$90.60$&$7.37$&$101.01$&$4.95$&$2.37$&$3.02$&$1.60$&$10.44$ \\
-GDP-LB &&$94.69$&$5.40$&$99.96$&$5.64$&$3.12$&$2.38$&$2.31$&$12.09$ \\
+Nominal &&$85.25$&$9.51$&$99.40$&$4.12$&$1.73$&$3.39$&$1.03$&$8.17$ \\
+ILB &&$90.62$&$8.00$&$102.30$&$4.94$&$2.34$&$2.97$&$1.72$&$11.54$ \\
+GDP-LB &&$94.79$&$6.01$&$102.62$&$5.61$&$3.08$&$2.35$&$2.45$&$13.56$ \\
 \\
 &&\multicolumn{8}{l}{Supply-driven economy ($\chi=0.2$)}\\
 \hline
-Nominal &&$97.21$&$7.58$&$107.66$&$6.09$&$0.82$&$2.37$&$3.62$&$18.14$ \\
-ILB &&$90.64$&$7.33$&$100.99$&$5.12$&$1.52$&$3.02$&$1.60$&$10.46$ \\
-GDP-LB &&$94.97$&$5.18$&$99.98$&$5.78$&$0.78$&$2.35$&$2.37$&$12.38$ \\
+Nominal &&$96.56$&$6.92$&$104.87$&$6.04$&$0.80$&$2.37$&$3.23$&$16.87$ \\
+ILB &&$90.63$&$8.04$&$102.37$&$5.13$&$1.56$&$2.97$&$1.72$&$11.57$ \\
+GDP-LB &&$94.99$&$5.88$&$102.67$&$5.79$&$0.84$&$2.33$&$2.49$&$13.78$ \\
 \\
 \hline
 \multicolumn{ 10 }{l}{Coupon decay rate $\chi= 0.9 $}\\
 \\
 &&\multicolumn{8}{l}{Demand-driven economy ($\chi=0.9$)}\\
 \hline
-Nominal &&$75.54$&$11.51$&$92.39$&$2.66$&$0.36$&$3.43$&$0.37$&$3.36$ \\
-ILB &&$84.40$&$8.48$&$96.86$&$4.04$&$1.60$&$2.88$&$0.77$&$5.52$ \\
-GDP-LB &&$94.66$&$5.62$&$100.41$&$5.65$&$3.17$&$2.47$&$2.34$&$12.27$ \\
+Nominal &&$75.91$&$12.88$&$94.76$&$2.64$&$0.39$&$3.54$&$0.53$&$4.85$ \\
+ILB &&$84.29$&$9.13$&$97.95$&$4.00$&$1.59$&$2.82$&$0.84$&$6.10$ \\
+GDP-LB &&$94.75$&$6.11$&$102.57$&$5.61$&$3.14$&$2.41$&$2.45$&$13.63$ \\
 \\
 &&\multicolumn{8}{l}{Supply-driven economy ($\chi=0.9$)}\\
 \hline
-Nominal &&$102.14$&$8.97$&$115.28$&$6.80$&$0.85$&$2.29$&$6.10$&$29.99$ \\
-ILB &&$85.97$&$8.94$&$99.49$&$4.45$&$2.03$&$2.87$&$1.06$&$7.53$ \\
-GDP-LB &&$94.65$&$5.31$&$99.99$&$5.74$&$0.75$&$2.50$&$2.28$&$12.00$ \\
+Nominal &&$101.20$&$7.69$&$111.81$&$6.67$&$0.69$&$2.32$&$5.40$&$26.98$ \\
+ILB &&$85.72$&$9.68$&$100.38$&$4.49$&$2.05$&$2.81$&$1.14$&$8.17$ \\
+GDP-LB &&$95.27$&$5.79$&$102.76$&$5.82$&$0.81$&$2.39$&$2.57$&$14.26$ \\
 \\
 \hline
 \end{tabular*}
 \begin{footnotesize}
-\parbox{\linewidth}{\textit{Notes}: This table shows performance metrics associated with three different debt issuance strategies; each strategy consists in issuing a given type of perpetuities: a nominal perpetuity ($\kappa_\pi=0$ and $\kappa_y=0$), an inflation-indexed perpetuity nominal ($\kappa_\pi=1$ and $\kappa_y=0$), and a GDP-indexed perpetuity nominal ($\kappa_\pi=1$ and $\kappa_y=1$). We consider two different values of $\chi$ (the higher $\chi$, the higher the average debt maturity). '$d$' denotes the debt-to-GDP ratio. '$r$' denotes the debt service, including debt indexation (in percent of GDP). '$\sqrt{\mathbb{V}(x)}$' corresponds to the standard deviation of variable $x$; '$PD$' stands for '10-year probability of default' (expressed in percent); '$spd$' stands for '10-year credit spread' (expressed in basis point), '$q_{95}(d)$' is the $95^{th}$ percentile of the debt-to-GDP distribution.}
+\parbox{\linewidth}{\textit{Notes}: This table shows performance metrics associated with three debt issuance strategies: a nominal perpetuity ($\kappa_\pi=0$ and $\kappa_y=0$), an inflation-indexed perpetuity ($\kappa_\pi=1$ and $\kappa_y=0$), and a GDP-linked perpetuity ($\kappa_\pi=1$ and $\kappa_y=1$). We consider two values of $\chi$; a higher $\chi$ corresponds to a longer average debt maturity. '$d$' denotes the debt-to-GDP ratio. '$r$' denotes the debt service, including indexation costs, as a percent of GDP. '$\sqrt{\mathbb{V}(x)}$' is the standard deviation of variable $x$; '$PD$' stands for the 10-year probability of default, expressed in percent; '$spd$' stands for the 10-year credit spread, expressed in basis points; '$q_{95}(d)$' is the $95^{th}$ percentile of the debt-to-GDP distribution.}
 \end{footnotesize}
 \end{table}
