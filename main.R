@@ -30,7 +30,7 @@ indic_DemSup <- FALSE
 
 # Full model estimation: re-estimates the macro-finance model from the starting
 # values specified below. Leave at 0 to load saved parameters from results/.
-indic_estim <- FALSE
+indic_estim <- TRUE
 
 # Issuance-strategy simulations: computes performance statistics over the grid
 # of maturities and indexation choices. Set to TRUE for a full replication.
@@ -270,6 +270,20 @@ nb_iter         <- 30   # iterations used to solve the perpetuity price
 nb_iter_sdf     <- 10   # iterations used to solve the SDF
 nb_iter4probas  <- 1000 # iterations used to compute unconditional distributions
 maxH            <- 10   # maximum maturity of zero-coupon bonds
+
+# FAST ==================================
+# FAST ==================================
+# FAST ==================================
+# FAST ==================================
+nb_grid         <- 25   # number of values per state variable
+nb_iter         <- 20   # iterations used to solve the perpetuity price
+nb_iter_sdf     <- 10   # iterations used to solve the SDF
+nb_iter4probas  <- 500 # iterations used to compute unconditional distributions
+maxH            <- 10   # maximum maturity of zero-coupon bonds
+# FAST ==================================
+# FAST ==================================
+# FAST ==================================
+# FAST ==================================
 
 
 # Parallelize independent strategy evaluations. This uses forked processes on

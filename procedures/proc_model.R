@@ -420,7 +420,7 @@ compare_model_target_moments <- function(Model,targets){
   Std_nom_yds  = model_moments$Std_nom_yds
   Std_real_yds = model_moments$Std_real_yds
   
-  table_compare_moments <- matrix(NaN,9,3)
+  table_compare_moments <- matrix(NaN,10,3)
   table_compare_moments[,3] <- 1
   colnames(table_compare_moments) <- c("Model","Target","Weight")
   
@@ -464,10 +464,15 @@ compare_model_target_moments <- function(Model,targets){
   table_compare_moments[8,2] <- targets$target_std_10_rea
   table_compare_moments[8,3] <- .2
   
-  name_of_moments <- c(name_of_moments,"Avg. breakeven")
-  table_compare_moments[9,1] <- avg_nom_yds[10] - avg_real_yds[10] - avg_Pi
-  table_compare_moments[9,2] <- targets$IRP10
+  name_of_moments <- c(name_of_moments,"Avg. 2-year inflation risk premium")
+  table_compare_moments[9,1] <- avg_nom_yds[2] - avg_real_yds[2] - avg_Pi
+  table_compare_moments[9,2] <- targets$IRP02
   table_compare_moments[9,3] <- 1000
+
+  name_of_moments <- c(name_of_moments,"Avg. 10-year inflation risk premium")
+  table_compare_moments[10,1] <- avg_nom_yds[10] - avg_real_yds[10] - avg_Pi
+  table_compare_moments[10,2] <- targets$IRP10
+  table_compare_moments[10,3] <- 1000
   
   rownames(table_compare_moments) <- name_of_moments
   
@@ -488,9 +493,22 @@ compute_distance <- function(param,targets,Model_ini){
   
   table_compare_moments <- res$table_compare_moments
   avg_nom_yds <- res$avg_nom_yds
+  avg_real_yds <- res$avg_real_yds
+  avg_Pi <- res$avg_Pi
 
   distance <- 5000000 * sum( table_compare_moments[,3] * 
     (table_compare_moments[,1] - table_compare_moments[,2])^2)
+
+  # Keep the whole model-implied inflation-risk-premium curve from drifting
+  # below the target floor. This is a soft restriction; the point targets above
+  # remain visible in the moment-matching table.
+  irp_by_maturity <- avg_nom_yds - avg_real_yds - avg_Pi
+  min_IRP <- ifelse(is.null(targets$min_IRP), 0, targets$min_IRP)
+  weight_nonnegative_IRP <- ifelse(is.null(targets$weight_nonnegative_IRP),
+                                   0,
+                                   targets$weight_nonnegative_IRP)
+  distance <- distance + 5000000 * weight_nonnegative_IRP *
+    sum(pmin(irp_by_maturity - min_IRP, 0)^2)
   
   # Add penalty when yield curves are not monotonously increasing:
   distance <- distance + 10000*(avg_nom_yds[2]<avg_nom_yds[1])*(avg_nom_yds[1]-avg_nom_yds[2])

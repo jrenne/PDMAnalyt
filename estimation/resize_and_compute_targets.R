@@ -17,5 +17,8 @@ targets <- list(
   target_avg_Dy = mean(DATA$dy,na.rm=TRUE),
   target_std_10_nom = sd(DATA$SVENY10,na.rm=TRUE)/100,
   target_std_10_rea = sd(DATA$TIPSY10,na.rm=TRUE)/100,
-  IRP10 = 0 # 10-year inflation risk premium
+  IRP02 = 0.005, # 2-year inflation risk premium
+  IRP10 = 0.005, # 10-year inflation risk premium
+  min_IRP = 0.005, # soft lower bound for inflation risk premiums across maturities
+  weight_nonnegative_IRP = 250
 )
